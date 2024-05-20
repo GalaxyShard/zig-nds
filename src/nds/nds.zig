@@ -1694,7 +1694,7 @@ pub fn bgRotate(arg_id: c_int, arg_angle: c_int) callconv(.C) void {
     _ = &id;
     var angle = arg_angle;
     _ = &angle;
-    _ = if (!bgIsText(id)) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 529), "!bgIsText(id)", "Cannot Rotate a Text Background");
+    _ = if (!bgIsText(id)) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 529), "!bgIsText(id)", "Cannot Rotate a Text Background");
     bgSetRotate(id, angle + bgState[@as(c_uint, @intCast(id))].angle);
 }
 pub fn bgSet(arg_id: c_int, arg_angle: c_int, arg_sx: s32, arg_sy: s32, arg_scrollX: s32, arg_scrollY: s32, arg_rotCenterX: s32, arg_rotCenterY: s32) callconv(.C) void {
@@ -1744,7 +1744,7 @@ pub fn bgSetScale(arg_id: c_int, arg_sx: s32, arg_sy: s32) callconv(.C) void {
     _ = &sx;
     var sy = arg_sy;
     _ = &sy;
-    _ = if (!bgIsText(id)) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 602), "!bgIsText(id)", "Cannot Scale a Text Background");
+    _ = if (!bgIsText(id)) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 602), "!bgIsText(id)", "Cannot Scale a Text Background");
     bgState[@as(c_uint, @intCast(id))].scaleX = sx;
     bgState[@as(c_uint, @intCast(id))].scaleY = sy;
     bgState[@as(c_uint, @intCast(id))].dirty = @as(c_int, 1) != 0;
@@ -1760,13 +1760,13 @@ pub fn bgInit(arg_layer: c_int, arg_type: BgType, arg_size: BgSize, arg_mapBase:
     _ = &mapBase;
     var tileBase = arg_tileBase;
     _ = &tileBase;
-    _ = if ((layer >= @as(c_int, 0)) and (layer <= @as(c_int, 3))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 635), "layer >= 0 && layer <= 3", "Only layers 0 - 3 are supported");
-    _ = if ((tileBase >= @as(c_int, 0)) and (tileBase <= @as(c_int, 15))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 636), "tileBase >= 0 && tileBase <= 15", "Background tile base is out of range");
-    _ = if ((mapBase >= @as(c_int, 0)) and (mapBase <= @as(c_int, 31))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 637), "mapBase >=0 && mapBase <= 31", "Background Map Base is out of range");
-    _ = if ((layer != @as(c_int, 0)) or !video3DEnabled()) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 638), "layer != 0 || !video3DEnabled()", "Background 0 is currently being used for 3D display");
-    _ = if (((layer > @as(c_int, 1)) or (@"type" == @as(c_uint, @bitCast(BgType_Text8bpp)))) or (@"type" == @as(c_uint, @bitCast(BgType_Text4bpp)))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 639), "layer > 1 || type == BgType_Text8bpp || type == BgType_Text4bpp", "Incorrect background type for mode");
-    _ = if ((tileBase == @as(c_int, 0)) or (@"type" < @as(c_uint, @bitCast(BgType_Bmp8)))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 641), "tileBase == 0 || type < BgType_Bmp8", "Tile base is unused for bitmaps.  Can be offset using mapBase * 16KB");
-    _ = if (((mapBase == @as(c_int, 0)) or (@"type" != @as(c_uint, @bitCast(BgType_Bmp8)))) or ((size != @as(c_uint, @bitCast(BgSize_B8_512x1024))) and (size != @as(c_uint, @bitCast(BgSize_B8_1024x512))))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 642), "(mapBase == 0 || type != BgType_Bmp8) || (size != BgSize_B8_512x1024 && size != BgSize_B8_1024x512)", "Large Bitmaps cannot be offset");
+    _ = if ((layer >= @as(c_int, 0)) and (layer <= @as(c_int, 3))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 635), "layer >= 0 && layer <= 3", "Only layers 0 - 3 are supported");
+    _ = if ((tileBase >= @as(c_int, 0)) and (tileBase <= @as(c_int, 15))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 636), "tileBase >= 0 && tileBase <= 15", "Background tile base is out of range");
+    _ = if ((mapBase >= @as(c_int, 0)) and (mapBase <= @as(c_int, 31))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 637), "mapBase >=0 && mapBase <= 31", "Background Map Base is out of range");
+    _ = if ((layer != @as(c_int, 0)) or !video3DEnabled()) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 638), "layer != 0 || !video3DEnabled()", "Background 0 is currently being used for 3D display");
+    _ = if (((layer > @as(c_int, 1)) or (@"type" == @as(c_uint, @bitCast(BgType_Text8bpp)))) or (@"type" == @as(c_uint, @bitCast(BgType_Text4bpp)))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 639), "layer > 1 || type == BgType_Text8bpp || type == BgType_Text4bpp", "Incorrect background type for mode");
+    _ = if ((tileBase == @as(c_int, 0)) or (@"type" < @as(c_uint, @bitCast(BgType_Bmp8)))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 641), "tileBase == 0 || type < BgType_Bmp8", "Tile base is unused for bitmaps.  Can be offset using mapBase * 16KB");
+    _ = if (((mapBase == @as(c_int, 0)) or (@"type" != @as(c_uint, @bitCast(BgType_Bmp8)))) or ((size != @as(c_uint, @bitCast(BgSize_B8_512x1024))) and (size != @as(c_uint, @bitCast(BgSize_B8_1024x512))))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 642), "(mapBase == 0 || type != BgType_Bmp8) || (size != BgSize_B8_512x1024 && size != BgSize_B8_1024x512)", "Large Bitmaps cannot be offset");
     return bgInit_call(layer, @"type", size, mapBase, tileBase);
 }
 pub fn bgInitSub(arg_layer: c_int, arg_type: BgType, arg_size: BgSize, arg_mapBase: c_int, arg_tileBase: c_int) callconv(.C) c_int {
@@ -1780,12 +1780,12 @@ pub fn bgInitSub(arg_layer: c_int, arg_type: BgType, arg_size: BgSize, arg_mapBa
     _ = &mapBase;
     var tileBase = arg_tileBase;
     _ = &tileBase;
-    _ = if ((layer >= @as(c_int, 0)) and (layer <= @as(c_int, 3))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 672), "layer >= 0 && layer <= 3", "Only layers 0 - 3 are supported");
-    _ = if ((tileBase >= @as(c_int, 0)) and (tileBase <= @as(c_int, 15))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 673), "tileBase >= 0 && tileBase <= 15", "Background tile base is out of range");
-    _ = if ((mapBase >= @as(c_int, 0)) and (mapBase <= @as(c_int, 31))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 674), "mapBase >=0 && mapBase <= 31", "Background Map Base is out of range");
-    _ = if (((layer > @as(c_int, 1)) or (@"type" == @as(c_uint, @bitCast(BgType_Text8bpp)))) or (@"type" == @as(c_uint, @bitCast(BgType_Text4bpp)))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 675), "layer > 1 || type == BgType_Text8bpp|| type == BgType_Text4bpp", "Incorrect background type for mode");
-    _ = if ((tileBase == @as(c_int, 0)) or (@"type" < @as(c_uint, @bitCast(BgType_Bmp8)))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 676), "tileBase == 0 || type < BgType_Bmp8", "Tile base is unused for bitmaps.  Can be offset using mapBase * 16KB");
-    _ = if ((size != @as(c_uint, @bitCast(BgSize_B8_512x1024))) and (size != @as(c_uint, @bitCast(BgSize_B8_1024x512)))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 677), "(size != BgSize_B8_512x1024 && size != BgSize_B8_1024x512)", "Sub Display has no large Bitmaps");
+    _ = if ((layer >= @as(c_int, 0)) and (layer <= @as(c_int, 3))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 672), "layer >= 0 && layer <= 3", "Only layers 0 - 3 are supported");
+    _ = if ((tileBase >= @as(c_int, 0)) and (tileBase <= @as(c_int, 15))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 673), "tileBase >= 0 && tileBase <= 15", "Background tile base is out of range");
+    _ = if ((mapBase >= @as(c_int, 0)) and (mapBase <= @as(c_int, 31))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 674), "mapBase >=0 && mapBase <= 31", "Background Map Base is out of range");
+    _ = if (((layer > @as(c_int, 1)) or (@"type" == @as(c_uint, @bitCast(BgType_Text8bpp)))) or (@"type" == @as(c_uint, @bitCast(BgType_Text4bpp)))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 675), "layer > 1 || type == BgType_Text8bpp|| type == BgType_Text4bpp", "Incorrect background type for mode");
+    _ = if ((tileBase == @as(c_int, 0)) or (@"type" < @as(c_uint, @bitCast(BgType_Bmp8)))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 676), "tileBase == 0 || type < BgType_Bmp8", "Tile base is unused for bitmaps.  Can be offset using mapBase * 16KB");
+    _ = if ((size != @as(c_uint, @bitCast(BgSize_B8_512x1024))) and (size != @as(c_uint, @bitCast(BgSize_B8_1024x512)))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 677), "(size != BgSize_B8_512x1024 && size != BgSize_B8_1024x512)", "Sub Display has no large Bitmaps");
     return bgInitSub_call(layer, @"type", size, mapBase, tileBase);
 }
 pub fn bgSetControlBits(arg_id: c_int, arg_bits: @"u16") callconv(.C) [*c]volatile vuint16 {
@@ -1793,7 +1793,7 @@ pub fn bgSetControlBits(arg_id: c_int, arg_bits: @"u16") callconv(.C) [*c]volati
     _ = &id;
     var bits = arg_bits;
     _ = &bits;
-    _ = if ((id >= @as(c_int, 0)) and (id <= @as(c_int, 7))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 694), "id >= 0 && id <= 7", "bgSetControlBits(), id must be the number returned from bgInit or bgInitSub");
+    _ = if ((id >= @as(c_int, 0)) and (id <= @as(c_int, 7))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 694), "id >= 0 && id <= 7", "bgSetControlBits(), id must be the number returned from bgInit or bgInitSub");
     bgControl[@as(c_uint, @intCast(id))].* |= @as(vuint16, @bitCast(@as(c_short, @truncate(@as(c_int, @bitCast(@as(c_uint, bits)))))));
     return bgControl[@as(c_uint, @intCast(id))];
 }
@@ -1802,7 +1802,7 @@ pub fn bgClearControlBits(arg_id: c_int, arg_bits: @"u16") callconv(.C) void {
     _ = &id;
     var bits = arg_bits;
     _ = &bits;
-    _ = if ((id >= @as(c_int, 0)) and (id <= @as(c_int, 7))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 708), "id >= 0 && id <= 7", "bgClearControlBits(), id must be the number returned from bgInit or bgInitSub");
+    _ = if ((id >= @as(c_int, 0)) and (id <= @as(c_int, 7))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 708), "id >= 0 && id <= 7", "bgClearControlBits(), id must be the number returned from bgInit or bgInitSub");
     bgControl[@as(c_uint, @intCast(id))].* &= @as(vuint16, @bitCast(@as(c_short, @truncate(~@as(c_int, @bitCast(@as(c_uint, bits)))))));
 }
 pub fn bgWrapOn(arg_id: c_int) callconv(.C) void {
@@ -1820,7 +1820,7 @@ pub fn bgSetPriority(arg_id: c_int, arg_priority: c_uint) callconv(.C) void {
     _ = &id;
     var priority = arg_priority;
     _ = &priority;
-    _ = if (priority < @as(c_uint, @bitCast(@as(c_int, 4)))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 743), "priority < 4", "Priority must be less than 4");
+    _ = if (priority < @as(c_uint, @bitCast(@as(c_int, 4)))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 743), "priority < 4", "Priority must be less than 4");
     bgControl[@as(c_uint, @intCast(id))].* &= @as(vuint16, @bitCast(@as(c_short, @truncate(~@as(c_int, 3)))));
     bgControl[@as(c_uint, @intCast(id))].* |= @as(vuint16, @bitCast(@as(c_ushort, @truncate(priority))));
 }
@@ -1829,7 +1829,7 @@ pub fn bgSetMapBase(arg_id: c_int, arg_base: c_uint) callconv(.C) void {
     _ = &id;
     var base = arg_base;
     _ = &base;
-    _ = if (base <= @as(c_uint, @bitCast(@as(c_int, 31)))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 759), "base <= 31", "Map base cannot exceed 31");
+    _ = if (base <= @as(c_uint, @bitCast(@as(c_int, 31)))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 759), "base <= 31", "Map base cannot exceed 31");
     bgControl[@as(c_uint, @intCast(id))].* &= @as(vuint16, @bitCast(@as(c_short, @truncate(~(@as(c_int, 31) << @intCast(8))))));
     bgControl[@as(c_uint, @intCast(id))].* |= @as(vuint16, @bitCast(@as(c_ushort, @truncate(base << @intCast(8)))));
 }
@@ -1838,7 +1838,7 @@ pub fn bgSetTileBase(arg_id: c_int, arg_base: c_uint) callconv(.C) void {
     _ = &id;
     var base = arg_base;
     _ = &base;
-    _ = if (base <= @as(c_uint, @bitCast(@as(c_int, 15)))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 775), "base <= 15", "Tile base cannot exceed 15");
+    _ = if (base <= @as(c_uint, @bitCast(@as(c_int, 15)))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 775), "base <= 15", "Tile base cannot exceed 15");
     bgControl[@as(c_uint, @intCast(id))].* &= @as(vuint16, @bitCast(@as(c_short, @truncate(~(@as(c_int, 15) << @intCast(2))))));
     bgControl[@as(c_uint, @intCast(id))].* |= @as(vuint16, @bitCast(@as(c_ushort, @truncate(base << @intCast(2)))));
 }
@@ -1877,7 +1877,7 @@ pub fn bgSetMosaic(arg_dx: c_uint, arg_dy: c_uint) callconv(.C) void {
     _ = &dx;
     var dy = arg_dy;
     _ = &dy;
-    _ = if ((dx < @as(c_uint, @bitCast(@as(c_int, 16)))) and (dy < @as(c_uint, @bitCast(@as(c_int, 16))))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 841), "dx < 16 && dy < 16", "Mosaic range is 0 to 15");
+    _ = if ((dx < @as(c_uint, @bitCast(@as(c_int, 16)))) and (dy < @as(c_uint, @bitCast(@as(c_int, 16))))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 841), "dx < 16 && dy < 16", "Mosaic range is 0 to 15");
     mosaicShadow = @as(@"u16", @bitCast(@as(c_ushort, @truncate(@as(c_uint, @bitCast(@as(c_int, @bitCast(@as(c_uint, mosaicShadow))) & @as(c_int, 65280))) | (dx | (dy << @intCast(4)))))));
     @as([*c]volatile vu16, @ptrFromInt(@as(c_int, 67108940))).* = mosaicShadow;
 }
@@ -1886,7 +1886,7 @@ pub fn bgSetMosaicSub(arg_dx: c_uint, arg_dy: c_uint) callconv(.C) void {
     _ = &dx;
     var dy = arg_dy;
     _ = &dy;
-    _ = if ((dx < @as(c_uint, @bitCast(@as(c_int, 16)))) and (dy < @as(c_uint, @bitCast(@as(c_int, 16))))) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 854), "dx < 16 && dy < 16", "Mosaic range is 0 to 15");
+    _ = if ((dx < @as(c_uint, @bitCast(@as(c_int, 16)))) and (dy < @as(c_uint, @bitCast(@as(c_int, 16))))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 854), "dx < 16 && dy < 16", "Mosaic range is 0 to 15");
     mosaicShadowSub = @as(@"u16", @bitCast(@as(c_ushort, @truncate(@as(c_uint, @bitCast(@as(c_int, @bitCast(@as(c_uint, mosaicShadowSub))) & @as(c_int, 65280))) | (dx | (dy << @intCast(4)))))));
     @as([*c]volatile vu16, @ptrFromInt(@as(c_int, 67113036))).* = mosaicShadowSub;
 }
@@ -1959,7 +1959,7 @@ pub fn bgSetCenterf(arg_id: c_int, arg_x: s32, arg_y: s32) callconv(.C) void {
     _ = &x;
     var y = arg_y;
     _ = &y;
-    _ = if (!bgIsText(id)) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 986), "!bgIsText(id)", "Text Backgrounds have no Center of Rotation");
+    _ = if (!bgIsText(id)) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 986), "!bgIsText(id)", "Text Backgrounds have no Center of Rotation");
     bgState[@as(c_uint, @intCast(id))].centerX = x;
     bgState[@as(c_uint, @intCast(id))].centerY = y;
     bgState[@as(c_uint, @intCast(id))].dirty = @as(c_int, 1) != 0;
@@ -1988,7 +1988,7 @@ pub fn bgSetAffineMatrixScroll(arg_id: c_int, arg_hdx: c_int, arg_vdx: c_int, ar
     _ = &scrollx;
     var scrolly = arg_scrolly;
     _ = &scrolly;
-    _ = if (!bgIsText(id)) @as(c_int, 0) else __sassert("./nds/arm9/background.h", @as(c_int, 1026), "!bgIsText(id)", "Text Backgrounds have no affine matrix and scroll registers.");
+    _ = if (!bgIsText(id)) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/background.h", @as(c_int, 1026), "!bgIsText(id)", "Text Backgrounds have no affine matrix and scroll registers.");
     bgTransform[@as(c_uint, @intCast(id))].*.hdx = @as(s16, @bitCast(@as(c_short, @truncate(hdx))));
     bgTransform[@as(c_uint, @intCast(id))].*.vdx = @as(s16, @bitCast(@as(c_short, @truncate(vdx))));
     bgTransform[@as(c_uint, @intCast(id))].*.hdy = @as(s16, @bitCast(@as(c_short, @truncate(hdy))));
@@ -2479,8 +2479,8 @@ pub fn glViewport(arg_x1: uint8, arg_y1: uint8, arg_x2: uint8, arg_y2: uint8) ca
     var y2 = arg_y2;
     _ = &y2;
     @as([*c]volatile vu32, @ptrFromInt(@as(c_int, 67110272))).* = @as(@"u32", @bitCast(((@as(c_int, @bitCast(@as(c_uint, x1))) + (@as(c_int, @bitCast(@as(c_uint, y1))) << @intCast(8))) + (@as(c_int, @bitCast(@as(c_uint, x2))) << @intCast(16))) + (@as(c_int, @bitCast(@as(c_uint, y2))) << @intCast(24))));
-} // ./nds/arm9/videoGL.h:731:26: warning: TODO implement translation of stmt class GCCAsmStmtClass
-// ./nds/arm9/videoGL.h:731:6: warning: unable to translate function, demoted to extern
+} // /opt/devkitpro/libnds/include/nds/arm9/videoGL.h:731:26: warning: TODO implement translation of stmt class GCCAsmStmtClass
+// /opt/devkitpro/libnds/include/nds/arm9/videoGL.h:731:6: warning: unable to translate function, demoted to extern
 pub extern fn glFlush(arg_mode: @"u32") callconv(.C) void;
 pub fn glMaterialShinyness() callconv(.C) void {
     var shiny32: [32]@"u32" = undefined;
@@ -3630,7 +3630,7 @@ pub fn oamSetMosaic(arg_dx: c_uint, arg_dy: c_uint) callconv(.C) void {
     _ = &dx;
     var dy = arg_dy;
     _ = &dy;
-    _ = if ((dx < @as(c_uint, @bitCast(@as(c_int, 16)))) and (dy < @as(c_uint, @bitCast(@as(c_int, 16))))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 365), "dx < 16 && dy < 16", "Mosaic range must be 0 to 15");
+    _ = if ((dx < @as(c_uint, @bitCast(@as(c_int, 16)))) and (dy < @as(c_uint, @bitCast(@as(c_int, 16))))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 365), "dx < 16 && dy < 16", "Mosaic range must be 0 to 15");
     mosaicShadow = @as(@"u16", @bitCast(@as(c_ushort, @truncate((@as(c_uint, @bitCast(@as(c_int, @bitCast(@as(c_uint, mosaicShadow))) & @as(c_int, 255))) | (dx << @intCast(8))) | (dy << @intCast(12))))));
     @as([*c]volatile vu16, @ptrFromInt(@as(c_int, 67108940))).* = mosaicShadow;
 }
@@ -3639,7 +3639,7 @@ pub fn oamSetMosaicSub(arg_dx: c_uint, arg_dy: c_uint) callconv(.C) void {
     _ = &dx;
     var dy = arg_dy;
     _ = &dy;
-    _ = if ((dx < @as(c_uint, @bitCast(@as(c_int, 16)))) and (dy < @as(c_uint, @bitCast(@as(c_int, 16))))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 378), "dx < 16 && dy < 16", "Mosaic range must be 0 to 15");
+    _ = if ((dx < @as(c_uint, @bitCast(@as(c_int, 16)))) and (dy < @as(c_uint, @bitCast(@as(c_int, 16))))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 378), "dx < 16 && dy < 16", "Mosaic range must be 0 to 15");
     mosaicShadowSub = @as(@"u16", @bitCast(@as(c_ushort, @truncate((@as(c_uint, @bitCast(@as(c_int, @bitCast(@as(c_uint, mosaicShadowSub))) & @as(c_int, 255))) | (dx << @intCast(8))) | (dy << @intCast(12))))));
     @as([*c]volatile vu16, @ptrFromInt(@as(c_int, 67113036))).* = mosaicShadowSub;
 }
@@ -3653,8 +3653,8 @@ pub fn oamSetXY(arg_oam: [*c]OamState, arg_id: c_int, arg_x: c_int, arg_y: c_int
     _ = &x;
     var y = arg_y;
     _ = &y;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 414), "oam == &oamMain || oam == &oamSub", "oamSetXY() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 415), "id >= 0 && id < SPRITE_COUNT", "oamSetXY() index is out of bounds, must be 0-127");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 414), "oam == &oamMain || oam == &oamSub", "oamSetXY() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 415), "id >= 0 && id < SPRITE_COUNT", "oamSetXY() index is out of bounds, must be 0-127");
     (blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3671,9 +3671,9 @@ pub fn oamSetPriority(arg_oam: [*c]OamState, arg_id: c_int, arg_priority: c_int)
     _ = &id;
     var priority = arg_priority;
     _ = &priority;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 429), "oam == &oamMain || oam == &oamSub", "oamSetPriority() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 430), "id >= 0 && id < SPRITE_COUNT", "oamSetPriority() index is out of bounds, must be 0-127");
-    _ = if ((priority >= @as(c_int, 0)) and (priority < @as(c_int, 4))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 431), "priority >= 0 && priority < 4", "oamSetPriority() priority is out of bounds, must be 0-3");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 429), "oam == &oamMain || oam == &oamSub", "oamSetPriority() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 430), "id >= 0 && id < SPRITE_COUNT", "oamSetPriority() index is out of bounds, must be 0-127");
+    _ = if ((priority >= @as(c_int, 0)) and (priority < @as(c_int, 4))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 431), "priority >= 0 && priority < 4", "oamSetPriority() priority is out of bounds, must be 0-3");
     (blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3686,13 +3686,13 @@ pub fn oamSetPalette(arg_oam: [*c]OamState, arg_id: c_int, arg_palette: c_int) c
     _ = &id;
     var palette = arg_palette;
     _ = &palette;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 444), "oam == &oamMain || oam == &oamSub", "oamSetPalette() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 445), "id >= 0 && id < SPRITE_COUNT", "oamSetPalette() index is out of bounds, must be 0-127");
-    _ = if ((palette >= @as(c_int, 0)) and (palette < @as(c_int, 16))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 446), "palette >= 0 && palette < 16", "oamSetPalette() palette is out of bounds, must be 0-15");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 444), "oam == &oamMain || oam == &oamSub", "oamSetPalette() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 445), "id >= 0 && id < SPRITE_COUNT", "oamSetPalette() index is out of bounds, must be 0-127");
+    _ = if ((palette >= @as(c_int, 0)) and (palette < @as(c_int, 16))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 446), "palette >= 0 && palette < 16", "oamSetPalette() palette is out of bounds, must be 0-15");
     _ = if ((blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*.unnamed_0.unnamed_0.blendMode != @as(c_uint, @bitCast(SpriteColorFormat_Bmp))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 448), "oam->oamMemory[id].blendMode != (ObjBlendMode)SpriteColorFormat_Bmp", "oamSetPalette() cannot set palette on a bitmapped sprite");
+    }).*.unnamed_0.unnamed_0.blendMode != @as(c_uint, @bitCast(SpriteColorFormat_Bmp))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 448), "oam->oamMemory[id].blendMode != (ObjBlendMode)SpriteColorFormat_Bmp", "oamSetPalette() cannot set palette on a bitmapped sprite");
     (blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3705,13 +3705,13 @@ pub fn oamSetAlpha(arg_oam: [*c]OamState, arg_id: c_int, arg_alpha: c_int) callc
     _ = &id;
     var alpha = arg_alpha;
     _ = &alpha;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 461), "oam == &oamMain || oam == &oamSub", "oamSetAlpha() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 462), "id >= 0 && id < SPRITE_COUNT", "oamSetAlpha() index is out of bounds, must be 0-127");
-    _ = if ((alpha >= @as(c_int, 0)) and (alpha < @as(c_int, 16))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 463), "alpha >= 0 && alpha < 16", "oamSetAlpha() alpha is out of bounds, must be 0-15");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 461), "oam == &oamMain || oam == &oamSub", "oamSetAlpha() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 462), "id >= 0 && id < SPRITE_COUNT", "oamSetAlpha() index is out of bounds, must be 0-127");
+    _ = if ((alpha >= @as(c_int, 0)) and (alpha < @as(c_int, 16))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 463), "alpha >= 0 && alpha < 16", "oamSetAlpha() alpha is out of bounds, must be 0-15");
     _ = if ((blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*.unnamed_0.unnamed_0.blendMode == @as(c_uint, @bitCast(SpriteColorFormat_Bmp))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 465), "oam->oamMemory[id].blendMode == (ObjBlendMode)SpriteColorFormat_Bmp", "oamSetAlpha() cannot set alpha on a paletted sprite");
+    }).*.unnamed_0.unnamed_0.blendMode == @as(c_uint, @bitCast(SpriteColorFormat_Bmp))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 465), "oam->oamMemory[id].blendMode == (ObjBlendMode)SpriteColorFormat_Bmp", "oamSetAlpha() cannot set alpha on a paletted sprite");
     (blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3728,8 +3728,8 @@ pub fn oamSetGfx(arg_oam: [*c]OamState, arg_id: c_int, arg_size: SpriteSize, arg
     _ = &format;
     var gfxOffset = arg_gfxOffset;
     _ = &gfxOffset;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 480), "oam == &oamMain || oam == &oamSub", "oamSetGfx() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 481), "id >= 0 && id < SPRITE_COUNT", "oamSetGfx() index is out of bounds, must be 0-127");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 480), "oam == &oamMain || oam == &oamSub", "oamSetGfx() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 481), "id >= 0 && id < SPRITE_COUNT", "oamSetGfx() index is out of bounds, must be 0-127");
     (blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3767,8 +3767,8 @@ pub fn oamSetAffineIndex(arg_oam: [*c]OamState, arg_id: c_int, arg_affineIndex: 
     _ = &affineIndex;
     var sizeDouble = arg_sizeDouble;
     _ = &sizeDouble;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 505), "oam == &oamMain || oam == &oamSub", "oamSetAffineIndex() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 506), "id >= 0 && id < SPRITE_COUNT", "oamSetAffineIndex() index is out of bounds, must be 0-127");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 505), "oam == &oamMain || oam == &oamSub", "oamSetAffineIndex() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 506), "id >= 0 && id < SPRITE_COUNT", "oamSetAffineIndex() index is out of bounds, must be 0-127");
     if ((affineIndex >= @as(c_int, 0)) and (affineIndex < @as(c_int, 32))) {
         (blk: {
             const tmp = id;
@@ -3800,12 +3800,12 @@ pub fn oamSetHidden(arg_oam: [*c]OamState, arg_id: c_int, arg_hide: bool) callco
     _ = &id;
     var hide = arg_hide;
     _ = &hide;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 530), "oam == &oamMain || oam == &oamSub", "oamSetHidden() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 531), "id >= 0 && id < SPRITE_COUNT", "oamSetHidden() index is out of bounds, must be 0-127");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 530), "oam == &oamMain || oam == &oamSub", "oamSetHidden() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 531), "id >= 0 && id < SPRITE_COUNT", "oamSetHidden() index is out of bounds, must be 0-127");
     _ = if (!(blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*.unnamed_0.unnamed_0.isRotateScale) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 532), "!oam->oamMemory[id].isRotateScale", "oamSetHidden() cannot set hide on a RotateScale sprite");
+    }).*.unnamed_0.unnamed_0.isRotateScale) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 532), "!oam->oamMemory[id].isRotateScale", "oamSetHidden() cannot set hide on a RotateScale sprite");
     (blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3820,12 +3820,12 @@ pub fn oamSetFlip(arg_oam: [*c]OamState, arg_id: c_int, arg_hflip: bool, arg_vfl
     _ = &hflip;
     var vflip = arg_vflip;
     _ = &vflip;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 546), "oam == &oamMain || oam == &oamSub", "oamSetFlip() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 547), "id >= 0 && id < SPRITE_COUNT", "oamSetFlip() index is out of bounds, must be 0-127");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 546), "oam == &oamMain || oam == &oamSub", "oamSetFlip() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 547), "id >= 0 && id < SPRITE_COUNT", "oamSetFlip() index is out of bounds, must be 0-127");
     _ = if (!(blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*.unnamed_0.unnamed_0.isRotateScale) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 548), "!oam->oamMemory[id].isRotateScale", "oamSetFlip() cannot set flip on a RotateScale sprite");
+    }).*.unnamed_0.unnamed_0.isRotateScale) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 548), "!oam->oamMemory[id].isRotateScale", "oamSetFlip() cannot set flip on a RotateScale sprite");
     (blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3842,8 +3842,8 @@ pub fn oamSetMosaicEnabled(arg_oam: [*c]OamState, arg_id: c_int, arg_mosaic: boo
     _ = &id;
     var mosaic = arg_mosaic;
     _ = &mosaic;
-    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 562), "oam == &oamMain || oam == &oamSub", "oamSetMosaicEnabled() oam must be &oamMain or &oamSub");
-    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 563), "id >= 0 && id < SPRITE_COUNT", "oamSetMosaicEnabled() index is out of bounds, must be 0-127");
+    _ = if ((oam == (&oamMain)) or (oam == (&oamSub))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 562), "oam == &oamMain || oam == &oamSub", "oamSetMosaicEnabled() oam must be &oamMain or &oamSub");
+    _ = if ((id >= @as(c_int, 0)) and (id < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 563), "id >= 0 && id < SPRITE_COUNT", "oamSetMosaicEnabled() index is out of bounds, must be 0-127");
     (blk: {
         const tmp = id;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3855,7 +3855,7 @@ pub fn oamClearSprite(arg_oam: [*c]OamState, arg_index_1: c_int) callconv(.C) vo
     _ = &oam;
     var index_1 = arg_index_1;
     _ = &index_1;
-    _ = if ((index_1 >= @as(c_int, 0)) and (index_1 < @as(c_int, 128))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 585), "index >= 0 && index < SPRITE_COUNT", "oamClearSprite() index is out of bounds, must be 0-127");
+    _ = if ((index_1 >= @as(c_int, 0)) and (index_1 < @as(c_int, 128))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 585), "index >= 0 && index < SPRITE_COUNT", "oamClearSprite() index is out of bounds, must be 0-127");
     (blk: {
         const tmp = index_1;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -3876,7 +3876,7 @@ pub fn oamAffineTransformation(arg_oam: [*c]OamState, arg_rotId: c_int, arg_hdx:
     _ = &vdx;
     var vdy = arg_vdy;
     _ = &vdy;
-    _ = if ((rotId >= @as(c_int, 0)) and (rotId < @as(c_int, 32))) @as(c_int, 0) else __sassert("./nds/arm9/sprite.h", @as(c_int, 622), "rotId >= 0 && rotId < 32", "oamAffineTransformation() rotId is out of bounds, must be 0-31");
+    _ = if ((rotId >= @as(c_int, 0)) and (rotId < @as(c_int, 32))) @as(c_int, 0) else __sassert("/opt/devkitpro/libnds/include/nds/arm9/sprite.h", @as(c_int, 622), "rotId >= 0 && rotId < 32", "oamAffineTransformation() rotId is out of bounds, must be 0-31");
     (blk: {
         const tmp = rotId;
         if (tmp >= 0) break :blk oam.*.unnamed_0.oamRotationMemory + @as(usize, @intCast(tmp)) else break :blk oam.*.unnamed_0.oamRotationMemory - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -4276,8 +4276,8 @@ pub const _REENT_CHECK_MISC = @compileError("unable to translate C expr: unexpec
 pub const _REENT_CHECK_SIGNAL_BUF = @compileError("unable to translate C expr: unexpected token ''"); // /opt/devkitpro/devkitARM/arm-none-eabi/include/sys/reent.h:724:9
 pub const _REENT_INIT_PTR = @compileError("unable to translate C expr: unexpected token '{'"); // /opt/devkitpro/devkitARM/arm-none-eabi/include/sys/reent.h:772:9
 pub const alloca = @compileError("unable to translate macro: undefined identifier `__builtin_alloca`"); // /opt/devkitpro/devkitARM/arm-none-eabi/include/alloca.h:16:9
-pub const sassert = @compileError("unable to translate C expr: expected ')' instead got '...'"); // ./nds/arm9/sassert.h:49:9
-pub const GL_STATIC_INL = @compileError("unable to translate C expr: unexpected token 'static'"); // ./nds/arm9/videoGL.h:52:9
+pub const sassert = @compileError("unable to translate C expr: expected ')' instead got '...'"); // /opt/devkitpro/libnds/include/nds/arm9/sassert.h:49:9
+pub const GL_STATIC_INL = @compileError("unable to translate C expr: unexpected token 'static'"); // /opt/devkitpro/libnds/include/nds/arm9/videoGL.h:52:9
 pub const TIMEVAL_TO_TIMESPEC = @compileError("unable to translate C expr: unexpected token 'do'"); // /opt/devkitpro/devkitARM/arm-none-eabi/include/sys/timespec.h:41:9
 pub const TIMESPEC_TO_TIMEVAL = @compileError("unable to translate C expr: unexpected token 'do'"); // /opt/devkitpro/devkitARM/arm-none-eabi/include/sys/timespec.h:46:9
 pub const fds_bits = @compileError("unable to translate macro: undefined identifier `__fds_bits`"); // /opt/devkitpro/devkitARM/arm-none-eabi/include/sys/select.h:56:9

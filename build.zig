@@ -27,16 +27,19 @@ pub fn build(b: *std.Build) void {
     // armv5te uses thumb version 2
     // https://documentation-service.arm.com/static/5f8dacc8f86e16515cdb865a
 
-    obj.setLibCFile(b.path("libc.txt"));
-    obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/libnds/include" });
-    obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/devkitARM/arm-none-eabi/include" });
+    // may be needed
+    // obj.setLibCFile(b.path("libc.txt"));
     // obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/portlibs/nds/include" });
     // obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/portlibs/armv5te/include" });
+    obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/libnds/include" });
+    obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/devkitARM/arm-none-eabi/include" });
 
-    // exe.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/libnds/lib" });
-    // exe.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/devkitARM/arm-none-eabi/lib" });
-    // exe.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/portlibs/nds/lib" });
-    // exe.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/portlibs/armv5te/lib" });
+    // obj.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/libnds/lib" });
+    // obj.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/devkitARM/arm-none-eabi/lib" });
+    // obj.linkSystemLibrary("nds9");
+
+    // obj.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/portlibs/nds/lib" });
+    // obj.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/portlibs/armv5te/lib" });
 
     const extension = if (builtin.target.os.tag == .windows) ".exe" else "";
 
@@ -45,6 +48,7 @@ pub fn build(b: *std.Build) void {
 
     const elf = b.addSystemCommand(&(.{
         devkitpro ++ "/devkitARM/bin/arm-none-eabi-gcc" ++ extension,
+        // "arm-none-eabi-gcc",
         "-g",
         "-mthumb",
         "-mthumb-interwork",

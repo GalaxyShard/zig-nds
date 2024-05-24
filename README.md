@@ -7,9 +7,9 @@
 
 ```
 pacman -S nds-dev
-git clone https://github.com/zig-homebrew/zig-nds
+git clone https://github.com/galaxyshard/zig-nds
 cd zig-nds/
-zig build # then run zig-out/zig-nds.nds with desmume
+zig build
 ```
 
 ## Resources

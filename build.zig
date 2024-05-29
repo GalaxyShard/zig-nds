@@ -70,7 +70,6 @@ pub fn build(b: *std.Build) void {
         // "-L" ++ devkitpro ++ "/portlibs/armv5te/lib",
     } ++ flags));
 
-
     const map_path = elf.addPrefixedOutputFileArg("-Wl,-Map,", "zig-nds.map");
     const install_map_file = b.addInstallFileWithDir(map_path, .prefix, "zig-nds.map");
 
@@ -97,7 +96,9 @@ pub fn build(b: *std.Build) void {
 
     // perhaps switch to no$gba or melonds
     const run_step = b.step("run", "Run in DeSmuME");
-    const desmume = b.addSystemCommand(&.{ emulator, "zig-out/zig-nds.nds" });
+    const desmume = b.addSystemCommand(&.{emulator});
+    desmume.addFileArg(nds_path);
+
     run_step.dependOn(&desmume.step);
     desmume.step.dependOn(&install_nds.step);
 }

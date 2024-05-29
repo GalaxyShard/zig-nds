@@ -44,7 +44,7 @@ pub fn build(b: *std.Build) void {
     const extension = if (builtin.target.os.tag == .windows) ".exe" else "";
 
     var wf = b.addWriteFiles();
-    _ = wf.addCopyFile(obj.getEmittedBin(), "zig-nds.o");
+    const obj_file = wf.addCopyFile(obj.getEmittedBin(), "zig-nds.o");
 
     const elf = b.addSystemCommand(&(.{
         devkitpro ++ "/devkitARM/bin/arm-none-eabi-gcc" ++ extension,
@@ -55,35 +55,42 @@ pub fn build(b: *std.Build) void {
         // NOTE: explicitly allows code execution from stack, possibly use -z,noexecstack instead?
         "-Wl,-z,execstack",
         "-specs=" ++ devkitpro ++ "/devkitARM/arm-none-eabi/lib/ds_arm9.specs",
-        "zig-nds.o",
+    }));
+    elf.setCwd(wf.getDirectory());
+
+    elf.addFileArg(obj_file);
+
+    elf.addArg("-o");
+    const elf_file = elf.addOutputFileArg("zig-nds.elf");
+
+    elf.addArgs(&(.{
         "-L" ++ devkitpro ++ "/libnds/lib",
         "-L" ++ devkitpro ++ "/devkitARM/arm-none-eabi/lib",
         // "-L" ++ devkitpro ++ "/portlibs/nds/lib",
         // "-L" ++ devkitpro ++ "/portlibs/armv5te/lib",
-    } ++ flags ++ .{
-        "-o",
-        "zig-nds.elf",
-    }));
-    elf.setCwd(wf.getDirectory());
+    } ++ flags));
+
+
     const map_path = elf.addPrefixedOutputFileArg("-Wl,-Map,", "zig-nds.map");
     const install_map_file = b.addInstallFileWithDir(map_path, .prefix, "zig-nds.map");
 
     const nds = b.addSystemCommand(&.{
         devkitpro ++ "/tools/bin/ndstool" ++ extension,
         "-9",
-        "zig-nds.elf",
-        "-c", // one more argument after this
     });
-
     nds.setCwd(wf.getDirectory());
-    // adds argument to nds
+
+    nds.addFileArg(elf_file);
+    nds.addArg("-c");
     const nds_path = nds.addOutputFileArg("zig-nds.nds");
+
     const install_nds = b.addInstallFileWithDir(nds_path, .prefix, "zig-nds.nds");
 
     b.default_step.dependOn(&install_map_file.step);
     install_map_file.step.dependOn(&elf.step);
 
     b.default_step.dependOn(&install_nds.step);
+    install_nds.step.dependOn(&nds.step);
     nds.step.dependOn(&elf.step);
 
     elf.step.dependOn(&obj.step);
@@ -91,6 +98,6 @@ pub fn build(b: *std.Build) void {
     // perhaps switch to no$gba or melonds
     const run_step = b.step("run", "Run in DeSmuME");
     const desmume = b.addSystemCommand(&.{ emulator, "zig-out/zig-nds.nds" });
-    run_step.dependOn(&nds.step);
     run_step.dependOn(&desmume.step);
+    desmume.step.dependOn(&install_nds.step);
 }

@@ -70,8 +70,8 @@ pub fn build(b: *std.Build) void {
         // "-L" ++ devkitpro ++ "/portlibs/armv5te/lib",
     } ++ flags));
 
-    const map_path = elf.addPrefixedOutputFileArg("-Wl,-Map,", "zig-nds.map");
-    const install_map_file = b.addInstallFileWithDir(map_path, .prefix, "zig-nds.map");
+    const map_path = elf.addPrefixedOutputFileArg("-Wl,-Map,", "symbols.map");
+    const install_map_file = b.addInstallFileWithDir(map_path, .prefix, "symbols.map");
 
     const nds = b.addSystemCommand(&.{
         devkitpro ++ "/tools/bin/ndstool" ++ extension,

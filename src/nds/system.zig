@@ -1,11 +1,5 @@
-const external = struct {
-    extern fn powerOn(bits: c_int) void;
-    extern fn powerOff(bits: c_int) void;
-};
 
 pub const REG_POWERCNT: *volatile u16 = @ptrFromInt(0x4000304);
-
-pub const PM_ARM9_DIRECT = 1 << 16;
 
 pub const Arm7PowerOptions = packed struct(u16) {
     sound_amp: bool = false, // 0, Power the sound hardware (needed to hear stuff in GBA mode too).
@@ -29,25 +23,3 @@ pub const Arm9PowerOptions = packed struct(u16) {
     pub const All2D = @This(){ .lcd = true, .main2d = true, .sub2d = true };
     pub const All = @This(){ .lcd = true, .main2d = true, .sub2d = true, .core3d = true, .matrix = true };
 };
-
-// assumes this is run on the Arm9 processor
-pub inline fn powerOnArm9(hardware: Arm9PowerOptions) void {
-    REG_POWERCNT.* |= @as(u16, @bitCast(hardware));
-}
-pub inline fn powerOnArm7(hardware: Arm7PowerOptions) void {
-    external.powerOn(@as(u32, @as(u16, @bitCast(hardware))));
-}
-
-pub inline fn powerOffArm9(hardware: Arm9PowerOptions) void {
-    REG_POWERCNT.* &= ~@as(u16, @bitCast(hardware));
-}
-pub inline fn powerOffArm7(hardware: Arm7PowerOptions) void {
-    external.powerOff(@as(u32, @as(u16, @bitCast(hardware))));
-}
-
-pub inline fn lcdMainOnTop() void {
-    REG_POWERCNT.* |= 1 << 15; // set swap_lcds
-}
-pub inline fn lcdMainOnBottom() void {
-    REG_POWERCNT.* &= ~@as(u16, 1 << 15); // unset swap_lcds
-}

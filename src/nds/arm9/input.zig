@@ -1,11 +1,11 @@
 // TODO: check if name needs to match (translate-c outputs struct_touchPosition)
 pub const TouchPosition = extern struct {
-    rawx: u16, //< Raw x value from the A2D
-    rawy: u16, //< Raw y value from the A2D
-    px: u16, //< Processes pixel X value
-    py: u16, //< Processes pixel Y value
-    z1: u16, //< Raw cross panel resistance
-    z2: u16, //< Raw cross panel resistance
+    rawx: u16 = 0, //< Raw x value from the A2D
+    rawy: u16 = 0, //< Raw y value from the A2D
+    px: u16 = 0, //< Processes pixel X value
+    py: u16 = 0, //< Processes pixel Y value
+    z1: u16 = 0, //< Raw cross panel resistance
+    z2: u16 = 0, //< Raw cross panel resistance
 };
 
 pub const KeyFlags = packed struct(u32) {

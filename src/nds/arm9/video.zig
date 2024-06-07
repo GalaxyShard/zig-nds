@@ -229,33 +229,56 @@ pub fn vramSetBankI(bank: VramIType) void {
 
 const Enable3D = 1 << 3;
 const DISPLAY_BG0_ACTIVE = 1 << 8;
+
+// T => Texture
+// R => Rotation
+// E => Extended Rotation "Bitmap or tiled" [libnds/source/arm9/background.c]
+// L => Large Bitmap background
+
 pub const VideoMode = enum(u32) {
-    Mode0_2D = 0x10000, //< 4 2D backgrounds
-    Mode1_2D = 0x10001, //< 4 2D backgrounds
-    Mode2_2D = 0x10002, //< 4 2D backgrounds
-    Mode3_2D = 0x10003, //< 4 2D backgrounds
-    Mode4_2D = 0x10004, //< 4 2D backgrounds
-    Mode5_2D = 0x10005, //< 4 2D backgrounds
-    Mode6_2D = 0x10006, //< 4 2D backgrounds
-    Mode0_3D = (0x10000 | DISPLAY_BG0_ACTIVE | Enable3D), //< 3 2D BGs, 1 3D BGs (main engine only)
-    Mode1_3D = (0x10001 | DISPLAY_BG0_ACTIVE | Enable3D), //< 3 2D BGs, 1 3D BGs (main engine only)
-    Mode2_3D = (0x10002 | DISPLAY_BG0_ACTIVE | Enable3D), //< 3 2D BGs, 1 3D BGs (main engine only)
-    Mode3_3D = (0x10003 | DISPLAY_BG0_ACTIVE | Enable3D), //< 3 2D BGs, 1 3D BGs (main engine only)
-    Mode4_3D = (0x10004 | DISPLAY_BG0_ACTIVE | Enable3D), //< 3 2D BGs, 1 3D BGs (main engine only)
-    Mode5_3D = (0x10005 | DISPLAY_BG0_ACTIVE | Enable3D), //< 3 2D BGs, 1 3D BGs (main engine only)
-    Mode6_3D = (0x10006 | DISPLAY_BG0_ACTIVE | Enable3D), //< 3 2D BGs, 1 3D BGs (main engine only)
 
-    Fifo = (3 << 16), //< Video display from main memory
+    Mode0_2D = 0x10000, // 4 2D backgrounds (TTTT)
+    Mode1_2D = 0x10001, // 4 2D backgrounds (TTTR)
+    Mode2_2D = 0x10002, // 4 2D backgrounds (TTTE)
+    Mode3_2D = 0x10003, // 4 2D backgrounds (TTRR)
+    Mode4_2D = 0x10004, // 4 2D backgrounds (TTRE)
+    Mode5_2D = 0x10005, // 4 2D backgrounds (TTEE)
+    Mode6_2D = 0x10006, // 4 2D backgrounds (_L__)
+    Mode0_3D = (0x10000 | DISPLAY_BG0_ACTIVE | Enable3D), // one 3D, three 2D
+    Mode1_3D = (0x10001 | DISPLAY_BG0_ACTIVE | Enable3D), // one 3D, three 2D
+    Mode2_3D = (0x10002 | DISPLAY_BG0_ACTIVE | Enable3D), // one 3D, three 2D
+    Mode3_3D = (0x10003 | DISPLAY_BG0_ACTIVE | Enable3D), // one 3D, three 2D
+    Mode4_3D = (0x10004 | DISPLAY_BG0_ACTIVE | Enable3D), // one 3D, three 2D
+    Mode5_3D = (0x10005 | DISPLAY_BG0_ACTIVE | Enable3D), // one 3D, three 2D
+    Mode6_3D = (0x10006 | DISPLAY_BG0_ACTIVE | Enable3D), // one 3D, three 2D
 
-    FB0 = 0x00020000, //< Video display directly from VRAM_A in LCD mode
-    FB1 = 0x00060000, //< Video display directly from VRAM_B in LCD mode
-    FB2 = 0x000A0000, //< Video display directly from VRAM_C in LCD mode
-    FB3 = 0x000E0000, //< Video display directly from VRAM_D in LCD mode
+    Fifo = (3 << 16), // Video display from main memory
+
+    FB0 = 0x00020000, // Video display directly from VRAM_A in LCD mode
+    FB1 = 0x00060000, // Video display directly from VRAM_B in LCD mode
+    FB2 = 0x000A0000, // Video display directly from VRAM_C in LCD mode
+    FB3 = 0x000E0000, // Video display directly from VRAM_D in LCD mode
+};
+pub const VideoModeSub = enum(u32) {
+
+    Mode0_2D = 0x10000, // 4 2D backgrounds (TTTT)
+    Mode1_2D = 0x10001, // 4 2D backgrounds (TTTR)
+    Mode2_2D = 0x10002, // 4 2D backgrounds (TTTE)
+    Mode3_2D = 0x10003, // 4 2D backgrounds (TTRR)
+    Mode4_2D = 0x10004, // 4 2D backgrounds (TTRE)
+    Mode5_2D = 0x10005, // 4 2D backgrounds (TTEE)
+
+    Fifo = (3 << 16), // Video display from main memory
+
+    FB0 = 0x00020000, // Video display directly from VRAM_A in LCD mode
+    FB1 = 0x00060000, // Video display directly from VRAM_B in LCD mode
+    FB2 = 0x000A0000, // Video display directly from VRAM_C in LCD mode
+    FB3 = 0x000E0000, // Video display directly from VRAM_D in LCD mode
 };
 pub inline fn videoSetMode(mode: VideoMode) void {
     REG_DISPCNT.* = @intFromEnum(mode);
 }
-pub inline fn videoSetModeSub(mode: VideoMode) void {
+pub inline fn videoSetModeSub(mode: VideoModeSub) void {
     REG_DISPCNT_SUB.* = @intFromEnum(mode);
 }
 pub inline fn video3DEnabled() bool {

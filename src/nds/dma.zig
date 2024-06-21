@@ -37,5 +37,9 @@ pub inline fn dmaCopy(src: *const anyopaque, dest: *anyopaque, size: u32) void {
     while ((dmaCr(3).* & DMA_BUSY) != 0) {}
 }
 
+// defined in arm9/cp15.h
+extern fn CP15_CleanAndFlushDCache() void;
 // originally defined in arm9/cache.h
-pub extern fn DC_FlushAll() void;
+pub inline fn DC_FlushAll() void {
+    CP15_CleanAndFlushDCache();
+}

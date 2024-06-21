@@ -2,12 +2,14 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 const emulator = "desmume";
-const devkitpro = "/opt/devkitpro";
+const game_title = "Homebrew Game";
 
 // Zig 0.13
 
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
+
+    const game_icon: std.Build.LazyPath = .{ .cwd_relative = "/opt/blocksds/core/sys/icon.bmp" };
 
     const arm9_obj = b.addObject(.{
         .name = "arm9",
@@ -26,65 +28,35 @@ pub fn build(b: *std.Build) void {
     // armv5te uses thumb version 2
     // https://documentation-service.arm.com/static/5f8dacc8f86e16515cdb865a
 
-    // may be needed
-    // arm9_obj.setLibCFile(b.path("libc.txt"));
-    // arm9_obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/portlibs/nds/include" });
-    // arm9_obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/portlibs/armv5te/include" });
-    arm9_obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/libnds/include" });
-    arm9_obj.addIncludePath(.{ .cwd_relative = devkitpro ++ "/devkitARM/arm-none-eabi/include" });
+    arm9_obj.setLibCFile(b.path("libc.txt"));
+    arm9_obj.addIncludePath(.{ .cwd_relative = "/opt/blocksds/core/libs/libnds/include" });
+//     arm9_obj.addIncludePath(.{ .cwd_relative = "/opt/blocksds/core/libs/maxmod/include" });
 
-    // arm9_obj.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/libnds/lib" });
-    // arm9_obj.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/devkitARM/arm-none-eabi/lib" });
-    // arm9_obj.linkSystemLibrary("nds9");
-
-    // arm9_obj.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/portlibs/nds/lib" });
-    // arm9_obj.addLibraryPath(.{ .cwd_relative = devkitpro ++ "/portlibs/armv5te/lib" });
-
+    // arm9_obj.addLibraryPath(.{ .cwd_relative = "/opt/blocksds/core/libs/libnds/lib" });
+    // arm9_obj.addLibraryPath(.{ .cwd_relative = "/opt/blocksds/core/libs/maxmod/lib" });
+//     arm9_obj.linkSystemLibrary("nds9");
+//     arm9_obj.linkSystemLibrary("mm9");
 
 
 
     var wf = b.addWriteFiles();
     const arm9_obj_file = wf.addCopyFile(arm9_obj.getEmittedBin(), "arm9.o");
 
-//  library paths on devkitpro arm-none-eabi-gcc
-//  /opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/14.1.0/
-//  /opt/devkitpro/devkitARM/lib/gcc/
-//  /opt/devkitpro/devkitARM/arm-none-eabi/lib/arm-none-eabi/14.1.0/
-//  /opt/devkitpro/devkitARM/arm-none-eabi/lib/
 
     const elf = b.addSystemCommand(&.{
-        devkitpro ++ "/devkitARM/bin/arm-none-eabi-gcc",
+//         devkitpro ++ "/devkitARM/bin/arm-none-eabi-gcc",
+        "/opt/wonderful/toolchain/gcc-arm-none-eabi/bin/arm-none-eabi-gcc",
 //         "arm-none-eabi-gcc",
         "-g",
         "-mthumb",
-        "-mthumb-interwork",
-//         "-Wl,-T" ++ devkitpro ++ "/devkitARM/arm-none-eabi/lib/ds_arm9.mem",
-//         "-Wl,-T" ++ devkitpro ++ "/devkitARM/arm-none-eabi/lib/ds_arm9.ld",
-//         "-Wl,--gc-sections,--no-warn-rwx-segments",
-//
-//          "-Wl,-L" ++ "/opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/14.1.0/",
-//          "-Wl,-L" ++ "/opt/devkitpro/devkitARM/lib/gcc/",
-//          "-Wl,-L" ++ "/opt/devkitpro/devkitARM/arm-none-eabi/lib/arm-none-eabi/14.1.0/",
-//          "-Wl,-L" ++ "/opt/devkitpro/devkitARM/arm-none-eabi/lib/",
-         "-L" ++ "/opt/devkitpro/devkitARM/lib/gcc/arm-none-eabi/14.1.0/",
-         "-L" ++ "/opt/devkitpro/devkitARM/lib/gcc/",
-         "-L" ++ "/opt/devkitpro/devkitARM/arm-none-eabi/lib/arm-none-eabi/14.1.0/",
-         "-L" ++ "/opt/devkitpro/devkitARM/arm-none-eabi/lib/",
+        "-mcpu=arm946e-s+nofp",
 
         // NOTE: explicitly allows code execution from stack, possibly use -z,noexecstack instead?
         "-Wl,-z,execstack",
 //         "-Wl,--verbose", // output info
-        "-specs=" ++ devkitpro ++ "/devkitARM/arm-none-eabi/lib/ds_arm9.specs",
-//         "-specs=" ++ devkitpro ++ "/devkitARM/lib/gcc/arm-none-eabi/14.1.0/sync-none.specs",
-
-//         devkitpro ++ "/devkitARM/arm-none-eabi/lib/thumb/ds_arm9_crt0.o",
-//         devkitpro ++ "/devkitARM/lib/gcc/arm-none-eabi/14.1.0/thumb/crti.o",
-//         devkitpro ++ "/devkitARM/lib/gcc/arm-none-eabi/14.1.0/thumb/crtbegin.o",
-//         devkitpro ++ "/devkitARM/arm-none-eabi/lib/thumb/crt0.o",
+        "-specs=/opt/blocksds/core/sys/crts/ds_arm9.specs",
     });
 //     elf.addPrefixedFileArg("-Wl,-T", b.path("arm9_link.ld"));
-//     elf.setEnvironmentVariable("LIBRARY_PATH", "/opt/devkitpro/devkitARM/arm-none-eabi/lib/thumb");
-
 //     b.default_step.dependOn(&b.addInstallFile(elf.captureStdOut(), "gcc-output-verbose-3").step);
 
 //     const elf = b.addSystemCommand(&.{
@@ -103,6 +75,7 @@ pub fn build(b: *std.Build) void {
 //     });
 //     arm9_obj.setLinkerScript(b.path("arm9_link.ld"))
     elf.setCwd(wf.getDirectory());
+    elf.setEnvironmentVariable("BLOCKSDS", "/opt/blocksds/core");
 
     elf.addFileArg(arm9_obj_file);
 
@@ -110,24 +83,39 @@ pub fn build(b: *std.Build) void {
     const elf_file = elf.addOutputFileArg("arm9.elf");
 
     elf.addArgs(&.{
-        "-L" ++ devkitpro ++ "/libnds/lib",
+        "-L/opt/blocksds/core/libs/libnds/lib",
+//         "-L/opt/blocksds/core/libs/maxmod/lib",
+//         "-L/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/lib/thumb",
+        "-L/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/lib",
+        "-Wl,--start-group", // fixes missing read/write/lseek/close linker errors
         "-lnds9",
+        "-lc",
+//         "-lmm9",
+        "-Wl,--end-group",
     });
 
-    const map_path = elf.addPrefixedOutputFileArg("-Wl,-Map,", "symbols.map");
 //     elf.addArg("-Map");
 //     const map_path = elf.addOutputFileArg("arm9_symbols.map");
+    const map_path = elf.addPrefixedOutputFileArg("-Wl,-Map,", "symbols.map");
     const install_map_file = b.addInstallFileWithDir(map_path, .prefix, "arm9_symbols.map");
 
 
 
     const nds = b.addSystemCommand(&.{
-        devkitpro ++ "/tools/bin/ndstool",
+        "/opt/blocksds/core/tools/ndstool/ndstool",
     });
     nds.setCwd(wf.getDirectory());
 
+    nds.addArg("-b");
+    nds.addFileArg(game_icon);
+    nds.addArg(game_title);
+
+    nds.addArg("-7"); // arm7 elf
+    nds.addFileArg(.{ .cwd_relative = "/opt/blocksds/core/sys/default_arm7/arm7.elf" });
+
     nds.addArg("-9"); // arm9 elf
     nds.addFileArg(elf_file);
+
     nds.addArg("-c");
     const nds_path = nds.addOutputFileArg("zig-nds.nds");
 
@@ -143,7 +131,7 @@ pub fn build(b: *std.Build) void {
     elf.step.dependOn(&arm9_obj.step);
 
     // perhaps switch to no$gba or melonds
-    const run_step = b.step("run", "Run in DeSmuME");
+    const run_step = b.step("run", "Run in emulator");
     const emulator_cmd = b.addSystemCommand(&.{emulator});
     emulator_cmd.addFileArg(nds_path);
 

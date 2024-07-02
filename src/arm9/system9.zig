@@ -1,5 +1,5 @@
-const system = @import("../system.zig");
-const fifo = @import("../fifo-common.zig");
+const system = @import("../common/system.zig");
+const fifo = @import("../common/fifo-common.zig");
 
 pub inline fn powerOnArm9(hardware: system.Arm9PowerOptions) void {
     system.REG_POWERCNT.* |= @bitCast(hardware);

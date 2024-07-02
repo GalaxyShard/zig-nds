@@ -1,0 +1,21 @@
+.{
+    .name = "nds",
+    .version = "0.0.0",
+    .dependencies = .{
+        .libnds = .{
+            .url = "https://github.com/blocksds/libnds/archive/refs/tags/v1.2.0-blocks.tar.gz",
+            .hash = "1220af892179e269cbfe62a0b13eb8d62cf507f033555382fa319c6acddc895dd251",
+        },
+        .@"wf-fatfs" = .{
+            .url = "https://github.com/WonderfulToolchain/wf-fatfs/archive/e01efdd228ad112f41760e44cc416373404bc770.tar.gz",
+            .hash = "122022394841b84781a363c4ad127b04a66323d05a365891a16c73888f4e04ebb7c3",
+        },
+    },
+    .paths = .{
+        "src",
+        "arm9-link-example.ld",
+        "libc.txt",
+        "build.zig",
+        "build.zig.zon",
+    },
+}

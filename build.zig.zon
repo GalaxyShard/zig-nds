@@ -26,6 +26,22 @@
             .url = "https://github.com/win-iconv/win-iconv/archive/master.tar.gz",
             .hash = "1220ba796f7ae295829ed8f9ff693aaa4b8d3928dfb2def81aecaac8e291a3cfe9b9",
         },
+        .squeezer = .{
+            .url = "https://github.com/blocksds/squeezer/archive/refs/tags/v1.2.0-blocks.tar.gz",
+            .hash = "12200a143a02e7738be22d8825465201a61b6ddfdcf4c5f7fdf25254c7bdfc768770",
+        },
+        .@"blocksds-tree" = .{
+            .url = "https://github.com/blocksds/sdk/archive/refs/tags/v1.2.0.tar.gz",
+            .hash = "1220b65fa0667c852da98973f109a40fdb8f25d36b9047e168feb35df58088efc38c",
+        },
+        .dldipatch = .{
+            .url = "https://github.com/blocksds/dldipatch/archive/refs/tags/v1.2.0-blocks.tar.gz",
+            .hash = "122029558c7cab56e9f952803486b9a1a425cb75aa27eab40077dafa208556aa1618",
+        },
+        .mmutil = .{
+            .url = "https://github.com/blocksds/mmutil/archive/refs/tags/v1.2.0-blocks.tar.gz",
+            .hash = "1220b16d9175be9cd59b060b4e22ec0247ef7a9e96292bc8520197a610f0906f600e",
+        },
     },
     .paths = .{
         "src",

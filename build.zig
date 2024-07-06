@@ -46,6 +46,10 @@ pub fn build(b: *std.Build) !void {
     const grit_c = b.dependency("grit", .{});
     const ndstool_c = b.dependency("ndstool", .{});
     const win_iconv_c = b.dependency("win-iconv", .{});
+    const squeezer_c = b.dependency("squeezer", .{});
+    const dldipatch_c = b.dependency("dldipatch", .{});
+    const mmutil_c = b.dependency("mmutil", .{});
+    const blocksds_tree = b.dependency("blocksds-tree", .{});
 
 
 
@@ -139,7 +143,6 @@ pub fn build(b: *std.Build) !void {
         .name = "ndstool",
         .target = tools_target,
         .link_libc = true,
-
     });
     const ndstool_flags = .{
         "-DPACKAGE_VERSION=\"2.3.0\"",
@@ -187,6 +190,136 @@ pub fn build(b: *std.Build) !void {
     ndstool_exe.addIncludePath(ndstool_c.path("source"));
     ndstool_exe.linkLibCpp();
     b.installArtifact(ndstool_exe);
+
+
+
+    const squeezer_exe = b.addExecutable(.{
+        .name = "squeezerw",
+        .target = tools_target,
+        .link_libc = true,
+    });
+    squeezer_exe.addCSourceFiles(.{
+        .root = squeezer_c.path("src"),
+        .files = &squeezer_files,
+        .flags = &.{
+            "-std=gnu17",
+
+            "-Wall", "-Wextra",
+            "-Wno-sign-compare", "-Wno-unused-parameter", "-Wno-unused-function",
+        },
+    });
+    squeezer_exe.addIncludePath(squeezer_c.path("src"));
+    b.installArtifact(squeezer_exe);
+
+
+
+    const dldipatch_exe = b.addExecutable(.{
+        .name = "dldipatch",
+        .target = tools_target,
+        .link_libc = true,
+    });
+    dldipatch_exe.addCSourceFile(.{
+        .file = dldipatch_c.path("dldipatch.c"),
+        .flags = &.{
+            "-std=gnu17",
+            "-Wall", "-Wextra",
+        },
+    });
+    b.installArtifact(dldipatch_exe);
+
+
+
+    const mmutil_exe = b.addExecutable(.{
+        .name = "mmutil",
+        .target = tools_target,
+        .link_libc = true,
+    });
+    mmutil_exe.addCSourceFiles(.{
+        .root = mmutil_c.path("source"),
+        .files = &mmutil_files,
+        .flags = &.{
+            "-std=gnu17",
+            "-Wall", "-Wextra",
+
+            "-DPACKAGE_VERSION=\"1.10.1\"",
+        },
+    });
+    mmutil_exe.addIncludePath(mmutil_c.path("source"));
+    b.installArtifact(mmutil_exe);
+
+
+
+    const bin2c_exe = b.addExecutable(.{
+        .name = "bin2c",
+        .target = tools_target,
+        .link_libc = true,
+    });
+    bin2c_exe.addCSourceFile(.{
+        .file = blocksds_tree.path("tools/bin2c/bin2c.c"),
+        .flags = &.{
+            "-std=gnu17",
+            "-Wall", "-Wextra",
+        },
+    });
+    b.installArtifact(bin2c_exe);
+
+
+
+    const dlditool_exe = b.addExecutable(.{
+        .name = "dlditool",
+        .target = tools_target,
+        .link_libc = true,
+    });
+    dlditool_exe.addCSourceFile(.{
+        .file = blocksds_tree.path("tools/dlditool/dlditool.c"),
+        .flags = &.{
+            "-std=gnu17",
+            "-Wall", "-Wextra",
+        },
+    });
+    b.installArtifact(dlditool_exe);
+
+
+
+    const teaktool_exe = b.addExecutable(.{
+        .name = "teaktool",
+        .target = tools_target,
+        .link_libc = true,
+    });
+    teaktool_exe.addCSourceFiles(.{
+        .root = blocksds_tree.path("tools/teaktool/source"),
+        .files = &.{
+            "elf.c", "main.c",
+        },
+        .flags = &.{
+            "-std=gnu2x",
+            "-Wall", "-Wextra",
+
+            "-DPACKAGE_VERSION=\"1.0.0\"",
+        },
+    });
+    teaktool_exe.addIncludePath(blocksds_tree.path("tools/teaktool/source"));
+    b.installArtifact(teaktool_exe);
+
+
+
+    const mkfatimg_exe = b.addExecutable(.{
+        .name = "mkfatimg",
+        .target = tools_target,
+        .link_libc = true,
+    });
+    mkfatimg_exe.addCSourceFiles(.{
+        .root = blocksds_tree.path("tools/mkfatimg/source"),
+        .files = &.{
+            "diskio.c", "ff.c", "ffsystem.c", "ffunicode.c", "main.c",
+        },
+        .flags = &.{
+            "-std=gnu17",
+            "-Wall", "-Wextra",
+        },
+    });
+    mkfatimg_exe.addIncludePath(blocksds_tree.path("tools/mkfatimg/source"));
+    b.installArtifact(mkfatimg_exe);
 }
 
 
@@ -252,6 +385,33 @@ const ndstool_files_cpp = .{
     "banner.cpp",
     "sha1.cpp",
     "ndsextract.cpp",
+};
+
+const squeezer_files = .{
+    "imageops.c",
+    "lodepng.c",
+    "maxrects.c",
+    "squeezer.c",
+    "squeezerw.c",
+};
+
+const mmutil_files = .{
+    "xm.c",
+    "it.c",
+    "mas.c",
+    "s3m.c",
+    "upload.c",
+    "gba.c",
+    "main.c",
+    "simple.c",
+    "mod.c",
+    "samplefix.c",
+    "wav.c",
+    "adpcm.c",
+    "kiwi.c",
+    "msl.c",
+    "nds.c",
+    "files.c",
 };
 
 const libnds_arm9_files = .{

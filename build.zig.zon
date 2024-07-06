@@ -3,12 +3,28 @@
     .version = "0.0.0",
     .dependencies = .{
         .libnds = .{
-            .url = "https://github.com/blocksds/libnds/archive/refs/tags/v1.2.0-blocks.tar.gz",
-            .hash = "1220af892179e269cbfe62a0b13eb8d62cf507f033555382fa319c6acddc895dd251",
+            .path = "../libnds-fork",
         },
+        // .libnds = .{
+        //     .url = "https://github.com/blocksds/libnds/archive/refs/tags/v1.2.0-blocks.tar.gz",
+        //     .hash = "1220af892179e269cbfe62a0b13eb8d62cf507f033555382fa319c6acddc895dd251",
+        // },
+
         .@"wf-fatfs" = .{
             .url = "https://github.com/WonderfulToolchain/wf-fatfs/archive/e01efdd228ad112f41760e44cc416373404bc770.tar.gz",
             .hash = "122022394841b84781a363c4ad127b04a66323d05a365891a16c73888f4e04ebb7c3",
+        },
+        .grit = .{
+            .url = "https://github.com/blocksds/grit/archive/refs/tags/v1.2.0-blocks.tar.gz",
+            .hash = "12205a3a55570a465798d47530b5b4d154022197be14dea89da6064462f5079900c2",
+        },
+        .ndstool = .{
+            .url = "https://github.com/blocksds/ndstool/archive/refs/tags/v1.2.0-blocks.tar.gz",
+            .hash = "1220a3a5135385bd53da6a8d7d94b8609c169e48cfb3bfe7f1e31fc2ebbd4555c8fa",
+        },
+        .@"win-iconv" = .{
+            .url = "https://github.com/win-iconv/win-iconv/archive/master.tar.gz",
+            .hash = "1220ba796f7ae295829ed8f9ff693aaa4b8d3928dfb2def81aecaac8e291a3cfe9b9",
         },
     },
     .paths = .{

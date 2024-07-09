@@ -2,9 +2,6 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 
-const ResolvedTarget = std.Build.ResolvedTarget;
-const OptimizeMode = std.builtin.OptimizeMode;
-
 
 const libnds_flags = .{
     "-std=gnu2x", // TODO: change to gnu23
@@ -18,9 +15,18 @@ const libnds_flags = .{
 //     "-nostdinc++",
 //     "-Dlong_call=__long_call__",
 };
+const ToolOptions = struct {
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    build_step: *std.Build.Step,
+    test_step: *std.Build.Step,
+};
 
 pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
+
+    const test_step = b.step("test", "Run tests");
+    const tools_step = b.step("tools", "Build all tools");
 
     const tools_target_triple = b.option(
         []const u8,
@@ -35,15 +41,42 @@ pub fn build(b: *std.Build) !void {
             .{}
     );
 
+
+    const tools_optimize = .ReleaseSafe;
+    const tool_options = .{
+        .target = tools_target,
+        .optimize = tools_optimize,
+        .build_step = tools_step,
+        .test_step = test_step,
+    };
+    const grit = build_grit(b, tool_options);
+    _ = build_ndstool(b, tool_options);
+    _ = build_bin2c(b, tool_options);
+    _ = build_dldipatch(b, tool_options);
+    _ = build_dlditool(b, tool_options);
+    _ = build_mkfatimg(b, tool_options);
+    _ = build_mmutil(b, tool_options);
+    _ = build_squeezerw(b, tool_options);
+    _ = build_teaktool(b, tool_options);
+
+    _ = grit;
+
     const nds9_target = b.resolveTargetQuery(.{
         // nice resource: https://wiki.debian.org/ArmEabiPort#Thumb_interworking_suggests_armv4t
         // TODO: check if thumb interworking must be enabled
-        // debian.org suggests it is required by eabi
+        // debian.org suggests it is required by .eabi
         .cpu_arch = .thumb,
         .os_tag = .freestanding,
         .cpu_model = .{ .explicit = &std.Target.arm.cpu.arm946e_s },
         .abi = .eabi,
     });
+    const nds7_target = b.resolveTargetQuery(.{
+        .cpu_arch = .thumb,
+        .os_tag = .freestanding,
+        .cpu_model = .{ .explicit = &std.Target.arm.cpu.arm7tdmi },
+        .abi = .eabi,
+    });
+    _ = nds7_target;
 
     const fatfs_c = b.dependency("wf-fatfs", .{});
     const libnds_c = b.dependency("libnds", .{});
@@ -92,34 +125,29 @@ pub fn build(b: *std.Build) !void {
 //         .optimize = optimize,
 //     });
 
-    const tools_optimize = .ReleaseSafe;
-    _ = build_grit(b, tools_target, tools_optimize);
-    _ = build_ndstool(b, tools_target, tools_optimize);
-    _ = build_bin2c(b, tools_target, tools_optimize);
-    _ = build_dldipatch(b, tools_target, tools_optimize);
-    _ = build_dlditool(b, tools_target, tools_optimize);
-    _ = build_mkfatimg(b, tools_target, tools_optimize);
-    _ = build_mmutil(b, tools_target, tools_optimize);
-    _ = build_squeezerw(b, tools_target, tools_optimize);
-    _ = build_teaktool(b, tools_target, tools_optimize);
+
+//     const grit_images = .{};
+//     _ = b.addRunArtifact(grit);
+
+    b.default_step.dependOn(tools_step);
 }
 
 
 
-fn build_grit(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const grit_c = b.dependency("grit", .{});
     const exe = b.addExecutable(.{
         .name = "grit",
-        .target = target,
+        .target = options.target,
         .link_libc = true,
-        .optimize = optimize,
+        .optimize = options.optimize,
     });
     const flags = .{ "-DPACKAGE_VERSION=\"0.9.2\"", "-Wall" };
 
     // statically make sure aligned_alloc has no reason to be executed by libplum, as it does not exist on windows
     const assertion = "_Static_assert(alignof(jmp_buf) <= alignof(max_align_t), \"jmp_buf cannot be aligned\")";
     const libplum_platform_flags: [1][]const u8 = (
-        if (target.result.os.tag == .windows)
+        if (options.target.result.os.tag == .windows)
             // gnu statement expression
             .{ "-Daligned_alloc(alignment, size)=({" ++ assertion ++ "; abort(); (void*)0; })" }
         else
@@ -146,20 +174,20 @@ fn build_grit(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *st
         exe.addIncludePath(grit_c.path(path));
     }
     exe.linkLibCpp();
-    b.installArtifact(exe);
+
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 
 
 
-fn build_ndstool(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const ndstool_c = b.dependency("ndstool", .{});
-    const win_iconv_c = b.dependency("win-iconv", .{});
 
     const exe = b.addExecutable(.{
         .name = "ndstool",
-        .target = target,
-        .optimize = optimize,
+        .target = options.target,
+        .optimize = options.optimize,
         .link_libc = true,
     });
     const flags = .{
@@ -186,40 +214,57 @@ fn build_ndstool(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) 
             // GCC: "-Wno-class-memaccess", "-Wno-stringop-truncation"
         }),
     });
-    if (target.result.os.tag == .windows) {
-        exe.addCSourceFile(.{
-            .file = win_iconv_c.path("win_iconv.c"),
-            .flags = &.{
-                "-Wall", "-Wpedantic",
-            },
-        });
-        exe.addIncludePath(win_iconv_c.path(""));
+
+
+
+    // iconv doesn't exist on Windows, provide an alternative implementation
+    if (options.target.result.os.tag == .windows) {
+        if (b.lazyDependency("win-iconv", .{})) |win_iconv_c| {
+            exe.addCSourceFile(.{
+                .file = win_iconv_c.path("win_iconv.c"),
+                .flags = &.{
+                    "-Wall", "-Wpedantic",
+                },
+            });
+            exe.addIncludePath(win_iconv_c.path(""));
+        }
     }
-    if (target.result.os.tag == .macos) {
-        const ndstool_stub = b.addObject(.{
-            .name = "ndstool-stub",
-            .target = target,
-            .optimize = optimize,
-            .link_libc = true,
-            .root_source_file = b.path("iconv-macos-stub.zig"),
-        });
+
+
+
+    // iconv is not properly linked on macOS, provide a stub for ndstool
+    const stub_options = .{
+        .name = "ndstool-macos-stub",
+        .target = options.target,
+        .optimize = options.optimize,
+        .link_libc = true,
+        .root_source_file = b.path("iconv-macos-stub.zig"),
+    };
+    const test_stub = b.addRunArtifact(b.addTest(stub_options));
+    options.test_step.dependOn(&test_stub.step);
+
+    if (options.target.result.os.tag == .macos) {
+        const ndstool_stub = b.addObject(stub_options);
         exe.addObjectFile(ndstool_stub.getEmittedBin());
     }
+
+
+
     exe.addIncludePath(ndstool_c.path("source"));
     exe.linkLibCpp();
-    b.installArtifact(exe);
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 
 
 
-fn build_bin2c(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_bin2c(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
 
     const exe = b.addExecutable(.{
         .name = "bin2c",
-        .target = target,
-        .optimize = optimize,
+        .target = options.target,
+        .optimize = options.optimize,
         .link_libc = true,
     });
     exe.addCSourceFile(.{
@@ -229,18 +274,18 @@ fn build_bin2c(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *s
             "-Wall", "-Wextra",
         },
     });
-    b.installArtifact(exe);
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 
 
 
-fn build_dldipatch(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_dldipatch(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const dldipatch_c = b.dependency("dldipatch", .{});
     const exe = b.addExecutable(.{
         .name = "dldipatch",
-        .target = target,
-        .optimize = optimize,
+        .target = options.target,
+        .optimize = options.optimize,
         .link_libc = true,
     });
     exe.addCSourceFile(.{
@@ -250,18 +295,18 @@ fn build_dldipatch(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode
             "-Wall", "-Wextra",
         },
     });
-    b.installArtifact(exe);
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 
 
 
-fn build_dlditool(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_dlditool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
     const exe = b.addExecutable(.{
         .name = "dlditool",
-        .target = target,
-        .optimize = optimize,
+        .target = options.target,
+        .optimize = options.optimize,
         .link_libc = true,
     });
     exe.addCSourceFile(.{
@@ -271,18 +316,18 @@ fn build_dlditool(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode)
             "-Wall", "-Wextra",
         },
     });
-    b.installArtifact(exe);
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 
 
 
-fn build_mkfatimg(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_mkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
     const exe = b.addExecutable(.{
         .name = "mkfatimg",
-        .target = target,
-        .optimize = optimize,
+        .target = options.target,
+        .optimize = options.optimize,
         .link_libc = true,
     });
     exe.addCSourceFiles(.{
@@ -296,18 +341,18 @@ fn build_mkfatimg(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode)
         },
     });
     exe.addIncludePath(blocksds_tree.path("tools/mkfatimg/source"));
-    b.installArtifact(exe);
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 
 
 
-fn build_mmutil(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const mmutil_c = b.dependency("mmutil", .{});
     const exe = b.addExecutable(.{
         .name = "mmutil",
-        .target = target,
-        .optimize = optimize,
+        .target = options.target,
+        .optimize = options.optimize,
         .link_libc = true,
     });
     exe.addCSourceFiles(.{
@@ -321,18 +366,18 @@ fn build_mmutil(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *
         },
     });
     exe.addIncludePath(mmutil_c.path("source"));
-    b.installArtifact(exe);
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 
 
 
-fn build_squeezerw(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const squeezer_c = b.dependency("squeezer", .{});
     const exe = b.addExecutable(.{
         .name = "squeezerw",
-        .target = target,
-        .optimize = optimize,
+        .target = options.target,
+        .optimize = options.optimize,
         .link_libc = true,
     });
     exe.addCSourceFiles(.{
@@ -346,18 +391,18 @@ fn build_squeezerw(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode
         },
     });
     exe.addIncludePath(squeezer_c.path("src"));
-    b.installArtifact(exe);
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 
 
 
-fn build_teaktool(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode) *std.Build.Step.Compile {
+fn build_teaktool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
     const exe = b.addExecutable(.{
         .name = "teaktool",
-        .target = target,
-        .optimize = optimize,
+        .target = options.target,
+        .optimize = options.optimize,
         .link_libc = true,
     });
     exe.addCSourceFiles(.{
@@ -373,7 +418,7 @@ fn build_teaktool(b: *std.Build, target: ResolvedTarget, optimize: OptimizeMode)
         },
     });
     exe.addIncludePath(blocksds_tree.path("tools/teaktool/source"));
-    b.installArtifact(exe);
+    options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
 

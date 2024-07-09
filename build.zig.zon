@@ -25,6 +25,7 @@
         .@"win-iconv" = .{
             .url = "https://github.com/win-iconv/win-iconv/archive/master.tar.gz",
             .hash = "1220ba796f7ae295829ed8f9ff693aaa4b8d3928dfb2def81aecaac8e291a3cfe9b9",
+            .lazy = true,
         },
         .squeezer = .{
             .url = "https://github.com/blocksds/squeezer/archive/refs/tags/v1.2.0-blocks.tar.gz",

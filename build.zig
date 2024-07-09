@@ -4,16 +4,13 @@ const builtin = @import("builtin");
 
 
 const libnds_flags = .{
-    "-std=gnu2x", // TODO: change to gnu23
-//     "-mcpu=arm946e-s+nofp", "-mthumb",
-//     "-mthumb-interwork",
-
-//     "-Wextra", "-Wpedantic", "-Wstrict-prototypes", "-Wshadow",
-
-    "-D__NDS__", "-DNDEBUG",
-    "-nostdinc", // no standard include paths
+    "-std=gnu23",
+    "-Wall", "-Wextra",
+    //"-Wpedantic",
+    "-Wstrict-prototypes", "-Wshadow",
+//     "-nostdinc", // no standard include paths
+    "-DPATH_MAX=1024", // HACK: this should not be needed, limits.h is somehow not included properly by Zig/LLVM
 //     "-nostdinc++",
-//     "-Dlong_call=__long_call__",
 };
 const ToolOptions = struct {
     target: std.Build.ResolvedTarget,
@@ -59,7 +56,7 @@ pub fn build(b: *std.Build) !void {
     _ = build_squeezerw(b, tool_options);
     _ = build_teaktool(b, tool_options);
 
-    _ = grit;
+
 
     const nds9_target = b.resolveTargetQuery(.{
         // nice resource: https://wiki.debian.org/ArmEabiPort#Thumb_interworking_suggests_armv4t
@@ -76,11 +73,15 @@ pub fn build(b: *std.Build) !void {
         .cpu_model = .{ .explicit = &std.Target.arm.cpu.arm7tdmi },
         .abi = .eabi,
     });
-    _ = nds7_target;
+
+    const extra_libnds_flags = (
+        if (optimize == .Debug) .{ "-fstack-protector-strong" }
+        else .{ "" }
+    );
+
 
     const fatfs_c = b.dependency("wf-fatfs", .{});
     const libnds_c = b.dependency("libnds", .{});
-
 
 
     const nds9 = b.addStaticLibrary(.{
@@ -91,7 +92,15 @@ pub fn build(b: *std.Build) !void {
 
         // Optimization option
         .omit_frame_pointer = true,
+        .root_source_file = b.path("src/arm9.zig"),
     });
+
+    nds9.root_module.addCMacro("__NDS__", "");
+    nds9.root_module.addCMacro("ARM9", "");
+    if (optimize != .Debug) {
+        nds9.root_module.addCMacro("NDEBUG", "");
+    }
+
     // TODO: remove dependency on external toolchain
     nds9.setLibCFile(b.path("libc.txt"));
 
@@ -102,32 +111,22 @@ pub fn build(b: *std.Build) !void {
         .files = &fatfs_files,
     });
 
-    // NOTE: keep in sync with libnds/Makefile.arm9
     nds9.addIncludePath(libnds_c.path("include"));
     nds9.addIncludePath(libnds_c.path("source"));
     nds9.addIncludePath(libnds_c.path("source/common/ndsabi"));
     nds9.addIncludePath(libnds_c.path("source/arm9/libc/fatfs"));
+
     nds9.addCSourceFiles(.{
         .root = libnds_c.path("source"),
         .files = &(
             libnds_arm9_files ++ libnds_common_files
             ++ libnds_arm9_asm ++ libnds_common_asm
         ),
-        .flags = &(libnds_flags ++ .{ "-DARM9" }),
+        .flags = &(libnds_flags ++ extra_libnds_flags),
     });
 
     b.installArtifact(nds9);
 
-//     const nds7 = b.addStaticLibrary(.{
-//         .name = "nds7",
-//         .target = nds_target,
-//         .link_libc = true,
-//         .optimize = optimize,
-//     });
-
-
-//     const grit_images = .{};
-//     _ = b.addRunArtifact(grit);
 
     b.default_step.dependOn(tools_step);
 }
@@ -142,7 +141,8 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .link_libc = true,
         .optimize = options.optimize,
     });
-    const flags = .{ "-DPACKAGE_VERSION=\"0.9.2\"", "-Wall" };
+    exe.root_module.addCMacro("PACKAGE_VERSION", "\"0.9.2\"");
+    const flags = .{ "-Wall" };
 
     // statically make sure aligned_alloc has no reason to be executed by libplum, as it does not exist on windows
     const assertion = "_Static_assert(alignof(jmp_buf) <= alignof(max_align_t), \"jmp_buf cannot be aligned\")";
@@ -156,7 +156,7 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFile(.{
         .file = grit_c.path("libplum/libplum.c"),
         .flags = &(flags ++ libplum_platform_flags ++ .{
-            "-std=gnu17",
+            "-std=gnu23",
             "-Wno-dangling-else", "-Wno-parentheses", "-Wno-misleading-indentation", "-Wno-unused-result", "-Wno-comment", "-Wno-unused-variable", "-Wno-sign-compare", "-Wno-unused-value", "-Wno-unused-but-set-variable",
             // Clang-specific
             "-Wno-tautological-compare",
@@ -167,7 +167,7 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFiles(.{
         .root = grit_c.path(""),
         .files = &grit_files,
-        .flags = &(flags ++ .{ "-std=gnu++14" }),
+        .flags = &(flags ++ .{ "-std=gnu++17" }),
     });
     const include = .{"cldib", "extlib", "libgrit", "libplum", "srcgrit"};
     inline for (include) |path| {
@@ -190,29 +190,29 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .optimize = options.optimize,
         .link_libc = true,
     });
-    const flags = .{
-        "-DPACKAGE_VERSION=\"2.3.0\"",
-        "-DWINICONV_CONST=", // for windows iconv
-    };
+    exe.root_module.addCMacro("PACKAGE_VERSION", "\"2.3.0\"");
+    exe.root_module.addCMacro("WINICONV_CONST", ""); // for windows iconv
+
 
     exe.addCSourceFiles(.{
         .root = ndstool_c.path("source"),
         .files = &ndstool_files_c,
-        .flags = &(flags ++ .{
-            "-std=gnu17",
+        .flags = &.{
+            "-std=gnu23",
 
-            "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
-        }),
+//             "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
+        },
     });
     exe.addCSourceFiles(.{
         .root = ndstool_c.path("source"),
         .files = &ndstool_files_cpp,
-        .flags = &(flags ++ .{
-            "-std=gnu++14",
+        .flags = &.{
+            "-std=gnu++17",
 
+//             "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
             "-Wno-unused-result",
             // GCC: "-Wno-class-memaccess", "-Wno-stringop-truncation"
-        }),
+        },
     });
 
 
@@ -270,7 +270,7 @@ fn build_bin2c(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFile(.{
         .file = blocksds_tree.path("tools/bin2c/bin2c.c"),
         .flags = &.{
-            "-std=gnu17",
+            "-std=gnu23",
             "-Wall", "-Wextra",
         },
     });
@@ -291,7 +291,7 @@ fn build_dldipatch(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
     exe.addCSourceFile(.{
         .file = dldipatch_c.path("dldipatch.c"),
         .flags = &.{
-            "-std=gnu17",
+            "-std=gnu23",
             "-Wall", "-Wextra",
         },
     });
@@ -312,7 +312,7 @@ fn build_dlditool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFile(.{
         .file = blocksds_tree.path("tools/dlditool/dlditool.c"),
         .flags = &.{
-            "-std=gnu17",
+            "-std=gnu23",
             "-Wall", "-Wextra",
         },
     });
@@ -336,7 +336,7 @@ fn build_mkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
             "diskio.c", "ff.c", "ffsystem.c", "ffunicode.c", "main.c",
         },
         .flags = &.{
-            "-std=gnu17",
+            "-std=gnu23",
             "-Wall", "-Wextra",
         },
     });
@@ -355,14 +355,13 @@ fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .optimize = options.optimize,
         .link_libc = true,
     });
+    exe.root_module.addCMacro("PACKAGE_VERSION", "\"1.10.1\"");
     exe.addCSourceFiles(.{
         .root = mmutil_c.path("source"),
         .files = &mmutil_files,
         .flags = &.{
-            "-std=gnu17",
+            "-std=gnu23",
             "-Wall", "-Wextra",
-
-            "-DPACKAGE_VERSION=\"1.10.1\"",
         },
     });
     exe.addIncludePath(mmutil_c.path("source"));
@@ -384,7 +383,7 @@ fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
         .root = squeezer_c.path("src"),
         .files = &squeezer_files,
         .flags = &.{
-            "-std=gnu17",
+            "-std=gnu23",
 
             "-Wall", "-Wextra",
             "-Wno-sign-compare", "-Wno-unused-parameter", "-Wno-unused-function",
@@ -405,16 +404,16 @@ fn build_teaktool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .optimize = options.optimize,
         .link_libc = true,
     });
+    exe.root_module.addCMacro("PACKAGE_VERSION", "\"1.0.0\"");
+
     exe.addCSourceFiles(.{
         .root = blocksds_tree.path("tools/teaktool/source"),
         .files = &.{
             "elf.c", "main.c",
         },
         .flags = &.{
-            "-std=gnu2x",
+            "-std=gnu23",
             "-Wall", "-Wextra",
-
-            "-DPACKAGE_VERSION=\"1.0.0\"",
         },
     });
     exe.addIncludePath(blocksds_tree.path("tools/teaktool/source"));
@@ -635,6 +634,7 @@ const libnds_arm7_files = .{
     "arm7/camera.twl.c",
     "arm7/tmio.twl.c",
     "arm7/microphone.twl.c",
+    "arm7/touchFilter.c",
     "arm7/libc/filesystem.c",
     "arm7/libc/iob.c",
     "arm7/i2c.twl.c",
@@ -645,12 +645,13 @@ const libnds_arm7_files = .{
     "arm7/audio.twl.c",
     "arm7/camerai2c.twl.c",
     "arm7/input.c",
+    "arm7/tsc.c",
     "arm7/systemShutDown.c",
     "arm7/spi.c",
     "arm7/codec.twl.c",
     "arm7/firmware.c",
     "arm7/userSettings.c",
 };
-const libnds_arm7_assembly = .{
+const libnds_arm7_asm = .{
     "arm7/intrwait.S",
 };

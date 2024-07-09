@@ -2,7 +2,6 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 
-
 const libnds_flags = .{
     "-std=gnu23",
     "-Wall", "-Wextra",
@@ -12,6 +11,12 @@ const libnds_flags = .{
     "-DPATH_MAX=1024", // HACK: this should not be needed, limits.h is somehow not included properly by Zig/LLVM
 //     "-nostdinc++",
 };
+const default_warn_flags = .{
+    "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes"
+};
+const default_c_flags = default_warn_flags ++ .{ "-std=gnu23" };
+const default_cpp_flags = default_warn_flags ++ .{ "-std=gnu++17" };
+
 const ToolOptions = struct {
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
@@ -208,32 +213,40 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .optimize = options.optimize,
     });
     exe.root_module.addCMacro("PACKAGE_VERSION", "\"0.9.2\"");
-    const flags = .{ "-Wall" };
 
-    // statically make sure aligned_alloc has no reason to be executed by libplum, as it does not exist on windows
-    const assertion = "_Static_assert(alignof(jmp_buf) <= alignof(max_align_t), \"jmp_buf cannot be aligned\")";
-    const libplum_platform_flags: [1][]const u8 = (
-        if (options.target.result.os.tag == .windows)
-            // gnu statement expression
-            .{ "-Daligned_alloc(alignment, size)=({" ++ assertion ++ "; abort(); (void*)0; })" }
-        else
-            .{ "" }
-    );
-    exe.addCSourceFile(.{
+
+    const libplum = b.addObject(.{
+        .name = "plum",
+        .target = options.target,
+        .link_libc = true,
+        .optimize = options.optimize,
+    });
+
+    if (options.target.result.os.tag == .windows) {
+        // statically make sure aligned_alloc has no reason to be executed by libplum, as it does not exist on windows
+        const assertion = "_Static_assert(alignof(jmp_buf) <= alignof(max_align_t), \"jmp_buf cannot be aligned\")";
+        libplum.root_module.addCMacro(
+            "aligned_alloc(alignment, size)",
+            "({" ++ assertion ++ "; abort(); (void*)0; })"
+        );
+    }
+    libplum.addCSourceFile(.{
         .file = grit_c.path("libplum/libplum.c"),
-        .flags = &(flags ++ libplum_platform_flags ++ .{
-            "-std=gnu23",
+        .flags = &.{
+            "-std=gnu17", // TODO: doesn't compile with gnu23
+            "-Wall",
             "-Wno-dangling-else", "-Wno-parentheses", "-Wno-misleading-indentation", "-Wno-unused-result", "-Wno-comment", "-Wno-unused-variable", "-Wno-sign-compare", "-Wno-unused-value", "-Wno-unused-but-set-variable",
             // Clang-specific
             "-Wno-tautological-compare",
 //             GCC: "-Wno-class-memaccess", "-Wno-maybe-uninitialized", "-Wno-format-truncation"
-        }),
+        },
     });
+    exe.addObjectFile(libplum.getEmittedBin());
 
     exe.addCSourceFiles(.{
         .root = grit_c.path(""),
         .files = &grit_files,
-        .flags = &(flags ++ .{ "-std=gnu++17" }),
+        .flags = &default_cpp_flags,
     });
     const include = .{"cldib", "extlib", "libgrit", "libplum", "srcgrit"};
     inline for (include) |path| {
@@ -263,22 +276,15 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFiles(.{
         .root = ndstool_c.path("source"),
         .files = &ndstool_files_c,
-        .flags = &.{
-            "-std=gnu23",
-
-//             "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
-        },
+        .flags = &default_c_flags,
     });
     exe.addCSourceFiles(.{
         .root = ndstool_c.path("source"),
         .files = &ndstool_files_cpp,
-        .flags = &.{
-            "-std=gnu++17",
-
-//             "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
+        .flags = &(default_cpp_flags ++ .{
             "-Wno-unused-result",
             // GCC: "-Wno-class-memaccess", "-Wno-stringop-truncation"
-        },
+        }),
     });
 
 
@@ -288,9 +294,7 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         if (b.lazyDependency("win-iconv", .{})) |win_iconv_c| {
             exe.addCSourceFile(.{
                 .file = win_iconv_c.path("win_iconv.c"),
-                .flags = &.{
-                    "-Wall", "-Wpedantic",
-                },
+                .flags = &default_c_flags,
             });
             exe.addIncludePath(win_iconv_c.path(""));
         }
@@ -335,10 +339,7 @@ fn build_bin2c(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     });
     exe.addCSourceFile(.{
         .file = blocksds_tree.path("tools/bin2c/bin2c.c"),
-        .flags = &.{
-            "-std=gnu23",
-            "-Wall", "-Wextra",
-        },
+        .flags = &default_c_flags,
     });
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
@@ -356,10 +357,7 @@ fn build_dldipatch(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
     });
     exe.addCSourceFile(.{
         .file = dldipatch_c.path("dldipatch.c"),
-        .flags = &.{
-            "-std=gnu23",
-            "-Wall", "-Wextra",
-        },
+        .flags = &default_c_flags,
     });
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
@@ -377,10 +375,7 @@ fn build_dlditool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     });
     exe.addCSourceFile(.{
         .file = blocksds_tree.path("tools/dlditool/dlditool.c"),
-        .flags = &.{
-            "-std=gnu23",
-            "-Wall", "-Wextra",
-        },
+        .flags = &(default_warn_flags ++ .{ "-std=gnu17" }), // TODO: doesn't compile with gnu23
     });
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
@@ -401,10 +396,7 @@ fn build_mkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .files = &.{
             "diskio.c", "ff.c", "ffsystem.c", "ffunicode.c", "main.c",
         },
-        .flags = &.{
-            "-std=gnu23",
-            "-Wall", "-Wextra",
-        },
+        .flags = &default_c_flags,
     });
     exe.addIncludePath(blocksds_tree.path("tools/mkfatimg/source"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
@@ -425,10 +417,7 @@ fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFiles(.{
         .root = mmutil_c.path("source"),
         .files = &mmutil_files,
-        .flags = &.{
-            "-std=gnu23",
-            "-Wall", "-Wextra",
-        },
+        .flags = &(default_warn_flags ++ .{ "-std=gnu17" }), // TODO: doesn't compile with gnu23
     });
     exe.addIncludePath(mmutil_c.path("source"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
@@ -448,12 +437,9 @@ fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
     exe.addCSourceFiles(.{
         .root = squeezer_c.path("src"),
         .files = &squeezer_files,
-        .flags = &.{
-            "-std=gnu23",
-
-            "-Wall", "-Wextra",
+        .flags = &(default_c_flags ++ .{
             "-Wno-sign-compare", "-Wno-unused-parameter", "-Wno-unused-function",
-        },
+        }),
     });
     exe.addIncludePath(squeezer_c.path("src"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
@@ -477,10 +463,7 @@ fn build_teaktool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .files = &.{
             "elf.c", "main.c",
         },
-        .flags = &.{
-            "-std=gnu23",
-            "-Wall", "-Wextra",
-        },
+        .flags = &default_c_flags,
     });
     exe.addIncludePath(blocksds_tree.path("tools/teaktool/source"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);

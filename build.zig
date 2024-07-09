@@ -127,6 +127,72 @@ pub fn build(b: *std.Build) !void {
 
     b.installArtifact(nds9);
 
+    const nds9_module = b.addModule("nds9", .{
+        .root_source_file = b.path("src/arm9.zig"),
+    });
+    nds9_module.linkLibrary(nds9);
+
+
+
+    const nds7 = b.addStaticLibrary(.{
+        .name = "nds7",
+        .target = nds7_target,
+        .link_libc = true,
+        .optimize = optimize,
+
+        .omit_frame_pointer = true,
+        .root_source_file = b.path("src/arm7.zig"),
+    });
+    nds7.root_module.addCMacro("__NDS__", "");
+    nds7.root_module.addCMacro("ARM7", "");
+    if (optimize != .Debug) {
+        nds9.root_module.addCMacro("NDEBUG", "");
+    }
+
+    // TODO: remove dependency on external toolchain
+    nds7.setLibCFile(b.path("libc.txt"));
+
+    nds7.addIncludePath(libnds_c.path("include"));
+    nds7.addIncludePath(libnds_c.path("source"));
+    nds7.addIncludePath(libnds_c.path("source/common/ndsabi"));
+
+    nds7.addCSourceFiles(.{
+        .root = libnds_c.path("source"),
+        .files = &(
+            libnds_arm7_files ++ libnds_common_files
+            ++ libnds_arm7_asm ++ libnds_common_asm
+        ),
+        .flags = &(libnds_flags ++ extra_libnds_flags),
+    });
+    b.installArtifact(nds7);
+
+
+
+    const grit_images = .{
+        .{ .dir = "source/arm9/gfx", .name = "keyboardGfx", },
+        .{ .dir = "source/arm9/gfx", .name = "default_font", },
+    };
+    const wf = b.addWriteFiles();
+    nds9.addIncludePath(wf.getDirectory());
+
+    inline for (grit_images) |image| {
+        const image_path = libnds_c.path(image.dir ++ "/" ++ image.name ++ ".png");
+        const convert = b.addRunArtifact(grit);
+
+        convert.setCwd(wf.getDirectory());
+
+        convert.addFileArg(image_path);
+        convert.addArg("-ftc"); // output file type C
+        convert.addArg("-W1"); // -W1 for error messages, -W2 for error + warnings
+        convert.addArg("-o");
+        convert.addArg(image.name);
+
+        nds9.addCSourceFile(.{
+            .file = wf.getDirectory().path(b, image.name ++ ".c"),
+            .flags = &(libnds_flags ++ extra_libnds_flags),
+        });
+        nds9.step.dependOn(&convert.step);
+    }
 
     b.default_step.dependOn(tools_step);
 }

@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const source_files = @import("source-files.zig");
 
 const libnds_flags = .{
     "-std=gnu23",
@@ -22,6 +23,11 @@ const ToolOptions = struct {
     optimize: std.builtin.OptimizeMode,
     build_step: *std.Build.Step,
     test_step: *std.Build.Step,
+};
+const LibOptions = struct {
+    nds9_target: std.Build.ResolvedTarget,
+    nds7_target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
 };
 
 pub fn build(b: *std.Build) !void {
@@ -113,7 +119,7 @@ pub fn build(b: *std.Build) !void {
     nds9.addIncludePath(fatfs_c.path("source"));
     nds9.addCSourceFiles(.{
         .root = fatfs_c.path("source"),
-        .files = &fatfs_files,
+        .files = &source_files.fatfs_c,
     });
 
     nds9.addIncludePath(libnds_c.path("include"));
@@ -123,10 +129,12 @@ pub fn build(b: *std.Build) !void {
 
     nds9.addCSourceFiles(.{
         .root = libnds_c.path("source"),
-        .files = &(
-            libnds_arm9_files ++ libnds_common_files
-            ++ libnds_arm9_asm ++ libnds_common_asm
-        ),
+        .files = &(source_files.libnds_arm9_c ++ source_files.libnds_common_c),
+        .flags = &(libnds_flags ++ extra_libnds_flags),
+    });
+    nds9.addCSourceFiles(.{
+        .root = libnds_c.path("source"),
+        .files = &(source_files.libnds_arm9_asm ++ source_files.libnds_common_asm),
         .flags = &(libnds_flags ++ extra_libnds_flags),
     });
 
@@ -151,7 +159,7 @@ pub fn build(b: *std.Build) !void {
     nds7.root_module.addCMacro("__NDS__", "");
     nds7.root_module.addCMacro("ARM7", "");
     if (optimize != .Debug) {
-        nds9.root_module.addCMacro("NDEBUG", "");
+        nds7.root_module.addCMacro("NDEBUG", "");
     }
 
     // TODO: remove dependency on external toolchain
@@ -163,12 +171,15 @@ pub fn build(b: *std.Build) !void {
 
     nds7.addCSourceFiles(.{
         .root = libnds_c.path("source"),
-        .files = &(
-            libnds_arm7_files ++ libnds_common_files
-            ++ libnds_arm7_asm ++ libnds_common_asm
-        ),
+        .files = &(source_files.libnds_arm7_c ++ source_files.libnds_common_c),
         .flags = &(libnds_flags ++ extra_libnds_flags),
     });
+    nds7.addCSourceFiles(.{
+        .root = libnds_c.path("source"),
+        .files = &(source_files.libnds_arm7_asm ++ source_files.libnds_common_asm),
+        .flags = &(libnds_flags ++ extra_libnds_flags),
+    });
+
     b.installArtifact(nds7);
 
 
@@ -199,7 +210,86 @@ pub fn build(b: *std.Build) !void {
         nds9.step.dependOn(&convert.step);
     }
 
+
+//     const lib_options = .{
+//         .nds9_target = nds9_target,
+//         .nds7_target = nds7_target,
+//         .optimize = optimize,
+//     };
+//     build_dswifi(b, lib_options);
+
+
+
     b.default_step.dependOn(tools_step);
+}
+
+
+
+// fn build_dswifi(b: *std.Build, options: LibOptions) void {
+//
+// }
+
+
+
+fn build_crts(b: *std.Build, options: LibOptions) void {
+    const blocksds_tree = b.dependency("blocksds-tree", .{});
+
+    // vram and iwram use the same crt
+    const arm7_vram_crt0 = b.addObject(.{
+        .name = "ds_arm7_vram_crt0",
+        .target = options.nds7_target,
+        .optimize = options.optimize,
+        .omit_frame_pointer = true,
+    });
+    arm7_vram_crt0.root_module.addCMacro("VRAM", "");
+    arm7_vram_crt0.root_module.addCMacro("__NDS__", "");
+    arm7_vram_crt0.root_module.addCMacro("ARM7", "");
+    if (options.optimize != .Debug) {
+        arm7_vram_crt0.root_module.addCMacro("NDEBUG", "");
+    }
+    arm7_vram_crt0.addCSourceFile(.{
+        .file = blocksds_tree.path("ds_arm7_crt0.s"),
+        .flags = &.{},
+    });
+//     b.installArtifact(arm7_vram_crt0);
+
+
+
+    const arm7_crt0 = b.addObject(.{
+        .name = "ds_arm7_vram_crt0",
+        .target = options.nds7_target,
+        .optimize = options.optimize,
+        .omit_frame_pointer = true,
+    });
+    arm7_crt0.root_module.addCMacro("__NDS__", "");
+    arm7_crt0.root_module.addCMacro("ARM7", "");
+    if (options.optimize != .Debug) {
+        arm7_crt0.root_module.addCMacro("NDEBUG", "");
+    }
+    arm7_crt0.addCSourceFile(.{
+        .file = blocksds_tree.path("ds_arm7_crt0.s"),
+        .flags = &.{},
+    });
+//     b.installArtifact(arm7_crt0);
+
+
+
+    const arm9_crt0 = b.addObject(.{
+        .name = "ds_arm7_vram_crt0",
+        .target = options.nds9_target,
+        .optimize = options.optimize,
+        .omit_frame_pointer = true,
+    });
+    arm9_crt0.root_module.addCMacro("__NDS__", "");
+    arm9_crt0.root_module.addCMacro("ARM9", "");
+    if (options.optimize != .Debug) {
+        arm9_crt0.root_module.addCMacro("NDEBUG", "");
+    }
+    arm9_crt0.addCSourceFile(.{
+        .file = blocksds_tree.path("ds_arm9_crt0.s"),
+        .flags = &.{},
+    });
+//     b.installArtifact(arm9_crt0);
 }
 
 
@@ -245,7 +335,7 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
 
     exe.addCSourceFiles(.{
         .root = grit_c.path(""),
-        .files = &grit_files,
+        .files = &source_files.grit_cpp,
         .flags = &default_cpp_flags,
     });
     const include = .{"cldib", "extlib", "libgrit", "libplum", "srcgrit"};
@@ -275,12 +365,12 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
 
     exe.addCSourceFiles(.{
         .root = ndstool_c.path("source"),
-        .files = &ndstool_files_c,
+        .files = &source_files.ndstool_c,
         .flags = &default_c_flags,
     });
     exe.addCSourceFiles(.{
         .root = ndstool_c.path("source"),
-        .files = &ndstool_files_cpp,
+        .files = &source_files.ndstool_cpp,
         .flags = &(default_cpp_flags ++ .{
             "-Wno-unused-result",
             // GCC: "-Wno-class-memaccess", "-Wno-stringop-truncation"
@@ -416,7 +506,7 @@ fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.root_module.addCMacro("PACKAGE_VERSION", "\"1.10.1\"");
     exe.addCSourceFiles(.{
         .root = mmutil_c.path("source"),
-        .files = &mmutil_files,
+        .files = &source_files.mmutil_c,
         .flags = &(default_warn_flags ++ .{ "-std=gnu17" }), // TODO: doesn't compile with gnu23
     });
     exe.addIncludePath(mmutil_c.path("source"));
@@ -436,7 +526,7 @@ fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
     });
     exe.addCSourceFiles(.{
         .root = squeezer_c.path("src"),
-        .files = &squeezer_files,
+        .files = &source_files.squeezer_c,
         .flags = &(default_c_flags ++ .{
             "-Wno-sign-compare", "-Wno-unused-parameter", "-Wno-unused-function",
         }),
@@ -469,238 +559,3 @@ fn build_teaktool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
 }
-
-
-
-// Ported from the libnds Makefiles
-// cd fatfs
-// find -L source -name "*.c" | grep -E -o source/.+
-//
-// cd libnds
-// find -L source -name "*.c" | grep -E -o arm9/.+
-// find -L source -name "*.S | grep -E -o arm9/.+
-
-// find -L source -name "*.c" | grep -E -o common/.+
-// find -L source -name "*.S" | grep -E -o common/.+
-
-// find -L source -name "*.c" | grep -E -o arm7/.+
-// find -L source -name "*.S" | grep -E -o arm7/.+
-
-const fatfs_files = .{
-    "ffunicode.c",
-    "ff.c",
-};
-const grit_files = .{
-    "cldib/cldib_adjust.cpp",
-    "cldib/cldib_conv.cpp",
-    "cldib/cldib_core.cpp",
-    "cldib/cldib_tmap.cpp",
-    "cldib/cldib_tools.cpp",
-    "cldib/cldib_wu.cpp",
-    "libgrit/cprs.cpp",
-    "libgrit/cprs_huff.cpp",
-    "libgrit/cprs_lz.cpp",
-    "libgrit/cprs_rle.cpp",
-    "libgrit/grit_core.cpp",
-    "libgrit/grit_misc.cpp",
-    "libgrit/grit_prep.cpp",
-    "libgrit/grit_shared.cpp",
-    "libgrit/grit_xp.cpp",
-    "libgrit/logger.cpp",
-    "libgrit/pathfun.cpp",
-    "extlib/plum.cpp",
-    "srcgrit/cli.cpp",
-    "srcgrit/grit_main.cpp",
-};
-
-const ndstool_files_c = .{
-    "loadme.c",
-    "compile_date.c",
-};
-const ndstool_files_cpp = .{
-    "ndstree.cpp",
-    "header.cpp",
-    "crc.cpp",
-    "ndscodes.cpp",
-    "raster.cpp",
-    "utf16.cpp",
-    "ndscreate.cpp",
-    "logo.cpp",
-    "bigint.cpp",
-    "elf.cpp",
-    "ndstool.cpp",
-    "banner.cpp",
-    "sha1.cpp",
-    "ndsextract.cpp",
-};
-
-const squeezer_files = .{
-    "imageops.c",
-    "lodepng.c",
-    "maxrects.c",
-    "squeezer.c",
-    "squeezerw.c",
-};
-
-const mmutil_files = .{
-    "xm.c",
-    "it.c",
-    "mas.c",
-    "s3m.c",
-    "upload.c",
-    "gba.c",
-    "main.c",
-    "simple.c",
-    "mod.c",
-    "samplefix.c",
-    "wav.c",
-    "adpcm.c",
-    "kiwi.c",
-    "msl.c",
-    "nds.c",
-    "files.c",
-};
-
-const libnds_arm9_files = .{
-    "arm9/grf.c",
-    "arm9/storage/card.c",
-    "arm9/storage/sdmmc.twl.c",
-    "arm9/storage/dldi.c",
-    "arm9/storage/firmware.c",
-    "arm9/trig.c",
-    "arm9/math.c",
-    "arm9/image.c",
-    "arm9/teak/fifo.twl.c",
-    "arm9/teak/process.twl.c",
-    "arm9/teak/dsp.twl.c",
-    "arm9/libc/fatfs.c",
-    "arm9/libc/crt0_argv.c",
-    "arm9/libc/filesystem.c",
-    "arm9/libc/dirent.c",
-    "arm9/libc/scandir.c",
-    "arm9/libc/iob.c",
-    "arm9/libc/fatfs/cache.c",
-    "arm9/libc/fatfs/ffsystem.c",
-    "arm9/libc/fatfs/diskio.c",
-    "arm9/libc/statvfs.c",
-    "arm9/libc/realpath.c",
-    "arm9/libc/nitrofs.c",
-    "arm9/libc/utime.c",
-    "arm9/libc/chdir.c",
-    "arm9/peripherals/camera.c",
-    "arm9/peripherals/slot2.c",
-    "arm9/peripherals/slot2solar.c",
-    "arm9/peripherals/camera.twl.c",
-    "arm9/peripherals/slot2gyro.c",
-    "arm9/peripherals/piano.c",
-    "arm9/peripherals/paddle.c",
-    "arm9/peripherals/rumble.c",
-    "arm9/peripherals/slot2.twl.c",
-    "arm9/peripherals/ndsmotion.c",
-    "arm9/peripherals/guitarGrip.c",
-    "arm9/peripherals/slot2tilt.c",
-    "arm9/system/initSystem.c",
-    "arm9/system/cache.c",
-    "arm9/system/exceptions.c",
-    "arm9/system/system.c",
-    "arm9/system/heapfuncs.c",
-    "arm9/system/keys.c",
-    "arm9/system/securearea.c",
-    "arm9/system/gurumeditation.c",
-    "arm9/sound.c",
-    "arm9/video/video.c",
-    "arm9/video/sprite_alloc.c",
-    "arm9/video/shadowRegs.c",
-    "arm9/video/videoGL.c",
-    "arm9/video/gl2d.c",
-    "arm9/video/sprite.c",
-    "arm9/video/background.c",
-    "arm9/video/boxtest.c",
-    "arm9/video/window.c",
-    "arm9/console.c",
-    "arm9/linkedlist.c",
-//     "arm9/decompress.c",
-    "arm9/sassert.c",
-    "arm9/pcx.c",
-    "arm9/dynamicArray.c",
-    "arm9/keyboard.c",
-};
-const libnds_arm9_asm = .{
-    "arm9/storage/dldi_stub.S",
-    "arm9/teak/utils.twl.S",
-    "arm9/system/IntrWait.S",
-    "arm9/system/cp15.S",
-    "arm9/system/vectorbase.S",
-    "arm9/system/mpu_setup.S",
-    "arm9/system/cpu_clock.S",
-    "arm9/system/exceptionHandler.S",
-};
-const libnds_common_files = .{
-    "common/cardEeprom.c",
-    "common/nwram.twl.c",
-    "common/debugprint.c",
-    "common/decompress.c",
-    "common/card.c",
-    "common/rsa.c",
-    "common/cothread/threads.c",
-    "common/syscalls.c",
-    "common/reset.c",
-    "common/libc/syscalls.c",
-    "common/libc/locks.c",
-    "common/libc/exit.c",
-    "common/libc/sbrk.c",
-    "common/timers.c",
-    "common/ndsabi/coroutine.c",
-    "common/ndsabi/context.c",
-    "common/interrupts.c",
-    "common/sha1.c",
-    "common/fifosystem.c",
-};
-const libnds_common_asm = .{
-    "common/biosCalls.twl.S",
-    "common/dma.S",
-    "common/cothread/aeabi_read_tp.S",
-    "common/swiSoftReset.S",
-    "common/cpu.S",
-    "common/ndsabi/rmemcpy.S",
-    "common/ndsabi/memset.S",
-    "common/ndsabi/context.S",
-    "common/ndsabi/memcpy.S",
-    "common/ndsabi/memmove.S",
-    "common/ndsabi/fiq_memcpy.S",
-    "common/ndsabi/coroutine.S",
-    "common/interruptDispatcher.S",
-    "common/biosCalls.S",
-    "common/debugprint.S",
-};
-const libnds_arm7_files = .{
-    "arm7/audio.c",
-    "arm7/touch.c",
-    "arm7/storage/sdmmc.twl.c",
-    "arm7/storage/card.twl.c",
-    "arm7/storage/storage_fifo.twl.c",
-    "arm7/storage/storage_fifo.c",
-    "arm7/camera.twl.c",
-    "arm7/tmio.twl.c",
-    "arm7/microphone.twl.c",
-    "arm7/touchFilter.c",
-    "arm7/libc/filesystem.c",
-    "arm7/libc/iob.c",
-    "arm7/i2c.twl.c",
-    "arm7/system.c",
-    "arm7/gpio.c",
-    "arm7/clock.c",
-    "arm7/microphone.c",
-    "arm7/audio.twl.c",
-    "arm7/camerai2c.twl.c",
-    "arm7/input.c",
-    "arm7/tsc.c",
-    "arm7/systemShutDown.c",
-    "arm7/spi.c",
-    "arm7/codec.twl.c",
-    "arm7/firmware.c",
-    "arm7/userSettings.c",
-};
-const libnds_arm7_asm = .{
-    "arm7/intrwait.S",
-};

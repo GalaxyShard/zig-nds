@@ -1,19 +1,29 @@
-/*--------------------------------------------------------------------------------
-	This Source Code Form is subject to the terms of the Mozilla Public License,
-	v. 2.0. If a copy of the MPL was not distributed with this file, You can
-	obtain one at https://mozilla.org/MPL/2.0/.
---------------------------------------------------------------------------------*/
+/* SPDX-License-Identifier: MPL-2.0 */
 
 MEMORY {
 	ewram	: ORIGIN = 0x02000000, LENGTH = 4M - 512k
 	dtcm	: ORIGIN = 0x02ff0000, LENGTH = 16K
-	vectors	: ORIGIN = 0x01000000, LENGTH = 256
-	itcm	: ORIGIN = 0x01000100, LENGTH = 32K - 256
+	itcm	: ORIGIN = 0x01000000, LENGTH = 32K
 }
 
 OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 ENTRY(_start)
+
+/* User-configurable symbols. */
+
+/* DLDI driver area size. */
+PROVIDE(__dldi_size = 16384);
+
+/* The size, in bytes, of the reserved section at the end of DTCM. */
+/* Traditionally, ARM9 reserves 0x40 bytes here. */
+PROVIDE(__dtcm_reserved_size = 0x40);
+
+/* ARM supervisor (SWI calls) stack size. */
+PROVIDE(__svc_stack_size = 0x100);
+
+/* ARM interrupt handler stack size. */
+PROVIDE(__irq_stack_size = 0x100);
 
 __ewram_end	=	ORIGIN(ewram) + LENGTH(ewram);
 __eheap_end	=	ORIGIN(ewram) + LENGTH(ewram);
@@ -22,21 +32,22 @@ __dtcm_top	=	ORIGIN(dtcm) + LENGTH(dtcm);
 __irq_flags	=	__dtcm_top - 0x08;
 __irq_vector	=	__dtcm_top - 0x04;
 
-__sp_svc	=	__dtcm_top - 0x100;
-__sp_irq	=	__sp_svc - 0x100;
-__sp_usr	=	__sp_irq - 0x100;
+__sp_svc	=	__dtcm_top - __dtcm_reserved_size;
+__sp_irq	=	__sp_svc - __svc_stack_size;
+__sp_usr	=	__sp_irq - __irq_stack_size;
+
+__dldi_log2_size = LOG2CEIL(__dldi_size + 1) - 1;
 
 PHDRS {
 	main    PT_LOAD FLAGS(7);
 	dtcm    PT_LOAD FLAGS(7);
 	itcm    PT_LOAD FLAGS(7);
-	vectors PT_LOAD FLAGS(7);
 	twl     PT_LOAD FLAGS(0x100007);
 }
 
 SECTIONS
 {
-	/* Secure area crap */
+	/* Secure area reserved space */
 	.secure : { *(.secure) } >ewram :main = 0
 
 	.crt0	:
@@ -44,6 +55,21 @@ SECTIONS
 		__text_start = . ;
 		KEEP (*(.crt0))
 		. = ALIGN(4);  /* REQUIRED. LD is flaky without it. */
+	} >ewram :main = 0x00
+
+	/* Create DLDI driver area. It should be zero-byte if DLDI code
+	   is not present, but set to an user-provided size if it is
+           present. */
+	.dldi :
+	{
+		__dldi_start = .;
+		*(.dldi)
+		. = ALIGN(4);
+
+		__dldi_data_end = .;
+		__dldi_end = __dldi_data_end > __dldi_start ? __dldi_start + __dldi_size : __dldi_start;
+		. = __dldi_end;
+		. = ALIGN(4);
 	} >ewram :main = 0x00
 
 	.plt : { *(.plt) } >ewram :main = 0xff
@@ -55,9 +81,9 @@ SECTIONS
 
 	.text :   /* ALIGN (4): */
 	{
-		*(EXCLUDE_FILE(*.itcm* *.vectors* *.twl*) .text)
-		*(EXCLUDE_FILE(*.itcm* *.vectors* *.twl*) .stub)
-		*(EXCLUDE_FILE(*.itcm* *.vectors* *.twl*) .text.*)
+		*(EXCLUDE_FILE(*.itcm* *.twl*) .text)
+		*(EXCLUDE_FILE(*.itcm* *.twl*) .stub)
+		*(EXCLUDE_FILE(*.itcm* *.twl*) .text.*)
 		/* .gnu.warning sections are handled specially by elf32.em.  */
 		*(EXCLUDE_FILE(*.twl*) .gnu.warning)
 		*(EXCLUDE_FILE(*.twl*) .gnu.linkonce.t*)
@@ -170,8 +196,29 @@ SECTIONS
 		*(EXCLUDE_FILE(*.twl*) .gnu.linkonce.d*)
 		CONSTRUCTORS
 		. = ALIGN(4);
-		__data_end = ABSOLUTE(.) ;
 	} >ewram :main = 0xff
+
+	.tdata ALIGN(4) :
+	{
+		__tdata_start = ABSOLUTE(.) ;
+		*(.tdata .tdata.* .gnu.linkonce.td.*)
+		. = ALIGN(4);    /* REQUIRED. LD is flaky without it. */
+		__tdata_end = ABSOLUTE(.) ;
+		__data_end = . ;
+	} >ewram :main = 0xff
+
+	__tdata_size = __tdata_end - __tdata_start ;
+
+	.tbss ALIGN(4) :
+	{
+		 __tbss_start = ABSOLUTE(.) ;
+		*(.tbss .tbss.* .gnu.linkonce.tb.*)
+		*(.tcommon)
+		. = ALIGN(4);    /* REQUIRED. LD is flaky without it. */
+		 __tbss_end = ABSOLUTE(.) ;
+	} >ewram :main = 0
+
+	__tbss_size = __tbss_end - __tbss_start ;
 
 	__bss_vma = . ;
 
@@ -189,20 +236,16 @@ SECTIONS
 	{
 		__itcm_lma = LOADADDR(.itcm);
 		__itcm_start = ABSOLUTE(.);
+
+		/* Vectors must be placed at the beginning of ITCM. */
+		KEEP(*(.vectors .vectors.*))
+
 		*(.itcm)
+		*(.itcm.*)
 		*.itcm*(.text .stub .text.*)
 		. = ALIGN(4);
 		__itcm_end = ABSOLUTE(.);
 	} >itcm AT>ewram :itcm = 0xff
-
-	.vectors :
-	{
-		__vectors_lma = LOADADDR(.vectors);
-		__vectors_start = ABSOLUTE(.);
-		KEEP(*(.vectors .vectors.*))
-		. = ALIGN(4);
-		__vectors_end = ABSOLUTE(.);
-	} >vectors AT>ewram :vectors = 0xff
 
 	.sbss __dtcm_end (NOLOAD):
 	{
@@ -223,14 +266,27 @@ SECTIONS
 		*(EXCLUDE_FILE(*.twl*) COMMON)
 		. = ALIGN(4);    /* REQUIRED. LD is flaky without it. */
 		__bss_end__ = ABSOLUTE(.) ;
+	} >ewram :NONE
+
+	/* Space reserved for the thread local storage of main() */
+	.tls ALIGN(4) (NOLOAD) :
+	{
+		__tls_start = ABSOLUTE(.) ;
+		. = . + __tdata_size + __tbss_size;
+		 __tls_end = ABSOLUTE(.) ;
 		__end__ = ABSOLUTE(.) ;
 	} >ewram :NONE
 
-	.twl __end__ : AT(MAX(0x2400000,MAX(__end__,LOADADDR(.vectors)+SIZEOF(.vectors))))
+	__tls_size = __tls_end - __tls_start ;
+
+	.twl __end__ : AT(MAX(0x2400000,__end__))
 	{
 		__arm9i_lma__ = LOADADDR(.twl);
 		__arm9i_start__ = ABSOLUTE(.);
 		*(.twl)
+		*(.twl.text .twl.text.*)
+		*(.twl.rodata .twl.rodata.*)
+		*(.twl.data .twl.data.*)
 		*.twl*(.text .stub .text.* .gnu.linkonce.t.*)
 		*.twl*(.rodata)
 		*.twl*(.roda)
@@ -244,7 +300,8 @@ SECTIONS
 	.twl_bss __arm9i_end__ (NOLOAD):
 	{
 		__twl_bss_start__ = ABSOLUTE(.);
-		*(.twl_bss)
+		*(.twl_bss .twl_bss.*)
+		*(.twl.bss .twl.bss.*)
 		*.twl*(.dynbss)
 		*.twl*(.gnu.linkonce.b*)
 		*.twl*(.bss*)

@@ -81,119 +81,29 @@ pub fn build(b: *std.Build) !void {
         .abi = .eabi,
     });
 
-    const extra_libnds_flags = (
-        if (optimize == .Debug) .{ "-fstack-protector-strong" }
-        else .{ "" }
-    );
 
 
-    const fatfs_c = b.dependency("wf-fatfs", .{});
-    const libnds_c = b.dependency("libnds", .{});
-
-
-    const nds9 = b.addStaticLibrary(.{
-        .name = "nds9",
-        .target = nds9_target,
-        .link_libc = true,
+    const lib_options = .{
+        .nds9_target = nds9_target,
+        .nds7_target = nds7_target,
         .optimize = optimize,
-
-        // Optimization option
-        .omit_frame_pointer = true,
-        .root_source_file = b.path("src/arm9.zig"),
-    });
-
-    nds9.root_module.addCMacro("__NDS__", "");
-    nds9.root_module.addCMacro("ARM9", "");
-    if (optimize != .Debug) {
-        nds9.root_module.addCMacro("NDEBUG", "");
-    }
-
-    // TODO: remove dependency on external toolchain
-    nds9.setLibCFile(b.path("libc.txt"));
-
-
-    nds9.addIncludePath(fatfs_c.path("source"));
-    nds9.addCSourceFiles(.{
-        .root = fatfs_c.path("source"),
-        .files = &source_files.fatfs_c,
-    });
-
-    nds9.addIncludePath(libnds_c.path("include"));
-    nds9.addIncludePath(libnds_c.path("source"));
-    nds9.addIncludePath(libnds_c.path("source/common/ndsabi"));
-    nds9.addIncludePath(libnds_c.path("source/arm9/libc/fatfs"));
-
-    nds9.addCSourceFiles(.{
-        .root = libnds_c.path("source"),
-        .files = &(source_files.libnds_arm9_c ++ source_files.libnds_common_c),
-        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
-    });
-    nds9.addCSourceFiles(.{
-        .root = libnds_c.path("source"),
-        .files = &(source_files.libnds_arm9_asm ++ source_files.libnds_common_asm),
-        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
-    });
-
-    b.installArtifact(nds9);
-
-    const nds9_module = b.addModule("nds9", .{
-        .root_source_file = b.path("src/arm9.zig"),
-    });
-    nds9_module.linkLibrary(nds9);
+    };
+    const libnds = build_libnds(b, lib_options);
+    _ = build_dswifi(b, lib_options);
+    _ = build_maxmod(b, lib_options);
 
 
 
-    const nds7 = b.addStaticLibrary(.{
-        .name = "nds7",
-        .target = nds7_target,
-        .link_libc = true,
-        .optimize = optimize,
-
-        .omit_frame_pointer = true,
-        .root_source_file = b.path("src/arm7.zig"),
-    });
-    nds7.root_module.addCMacro("__NDS__", "");
-    nds7.root_module.addCMacro("ARM7", "");
-    if (optimize != .Debug) {
-        nds7.root_module.addCMacro("NDEBUG", "");
-    }
-
-    // TODO: remove dependency on external toolchain
-    nds7.setLibCFile(b.path("libc.txt"));
-
-    nds7.addIncludePath(libnds_c.path("include"));
-    nds7.addIncludePath(libnds_c.path("source"));
-    nds7.addIncludePath(libnds_c.path("source/common/ndsabi"));
-
-    nds7.addCSourceFiles(.{
-        .root = libnds_c.path("source"),
-        .files = &(source_files.libnds_arm7_c ++ source_files.libnds_common_c),
-        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
-    });
-    nds7.addCSourceFiles(.{
-        .root = libnds_c.path("source"),
-        .files = &(source_files.libnds_arm7_asm ++ source_files.libnds_common_asm),
-        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
-    });
-
-    b.installArtifact(nds7);
-
-    const nds7_module = b.addModule("nds7", .{
-        .root_source_file = b.path("src/arm7.zig"),
-    });
-    nds7_module.linkLibrary(nds7);
-
-
-
+    const libnds_dep = b.dependency("libnds", .{});
     const grit_images = .{
         .{ .dir = "source/arm9/gfx", .name = "keyboardGfx", },
         .{ .dir = "source/arm9/gfx", .name = "default_font", },
     };
     const wf = b.addWriteFiles();
-    nds9.addIncludePath(wf.getDirectory());
+    libnds.arm9.addIncludePath(wf.getDirectory());
 
     inline for (grit_images) |image| {
-        const image_path = libnds_c.path(image.dir ++ "/" ++ image.name ++ ".png");
+        const image_path = libnds_dep.path(image.dir ++ "/" ++ image.name ++ ".png");
         const convert = b.addRunArtifact(grit);
 
         convert.setCwd(wf.getDirectory());
@@ -204,22 +114,12 @@ pub fn build(b: *std.Build) !void {
         convert.addArg("-o");
         convert.addArg(image.name);
 
-        nds9.addCSourceFile(.{
+        libnds.arm9.addCSourceFile(.{
             .file = wf.getDirectory().path(b, image.name ++ ".c"),
-            .flags = &(libnds_flags ++ extra_libnds_flags),
+            .flags = &(default_c_flags),
         });
-        nds9.step.dependOn(&convert.step);
+        libnds.arm9.step.dependOn(&convert.step);
     }
-
-
-    const lib_options = .{
-        .nds9_target = nds9_target,
-        .nds7_target = nds7_target,
-        .optimize = optimize,
-    };
-    _ = build_dswifi(b, lib_options);
-    _ = build_maxmod(b, lib_options);
-
 
 
     b.default_step.dependOn(tools_step);
@@ -257,6 +157,7 @@ fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateO
         .omit_frame_pointer = true,
     });
 
+    // TODO: remove dependency on external toolchain
     arm9.setLibCFile(b.path("libc.txt"));
     arm7.setLibCFile(b.path("libc.txt"));
 
@@ -285,6 +186,67 @@ fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateO
         .arm9_module = arm9_module,
         .arm7_module = arm7_module,
     };
+}
+
+
+
+fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
+    const fatfs_dep = b.dependency("wf-fatfs", .{});
+    const libnds_dep = b.dependency("nds", .{});
+
+    const extra_libnds_flags = (
+        if (options.optimize == .Debug) .{ "-fstack-protector-strong" }
+        else .{ "" }
+    );
+
+    const libnds = create_arm7_arm9(b, "libnds", .{
+        .nds7_target = options.nds7_target,
+        .nds9_target = options.nds9_target,
+        .optimize = options.optimize,
+    });
+    libnds.arm9.root_module.root_source_file = b.path("src/arm9.zig");
+    libnds.arm7.root_module.root_source_file = b.path("src/arm7.zig");
+
+    libnds.arm9.addIncludePath(fatfs_dep.path("source"));
+    libnds.arm9.addCSourceFiles(.{
+        .root = fatfs_dep.path("source"),
+        .files = &source_files.fatfs_c,
+    });
+
+    libnds.arm9.addIncludePath(libnds_dep.path("include"));
+    libnds.arm9.addIncludePath(libnds_dep.path("source"));
+    libnds.arm9.addIncludePath(libnds_dep.path("source/common/ndsabi"));
+    libnds.arm9.addIncludePath(libnds_dep.path("source/arm9/libc/fatfs"));
+
+    libnds.arm9.addCSourceFiles(.{
+        .root = libnds_dep.path("source"),
+        .files = &(source_files.libnds_arm9_c ++ source_files.libnds_common_c),
+        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+    });
+    libnds.arm9.addCSourceFiles(.{
+        .root = libnds_dep.path("source"),
+        .files = &(source_files.libnds_arm9_asm ++ source_files.libnds_common_asm),
+        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+    });
+
+
+
+    libnds.arm7.addIncludePath(libnds_dep.path("include"));
+    libnds.arm7.addIncludePath(libnds_dep.path("source"));
+    libnds.arm7.addIncludePath(libnds_dep.path("source/common/ndsabi"));
+
+    libnds.arm7.addCSourceFiles(.{
+        .root = libnds_dep.path("source"),
+        .files = &(source_files.libnds_arm7_c ++ source_files.libnds_common_c),
+        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+    });
+    libnds.arm7.addCSourceFiles(.{
+        .root = libnds_dep.path("source"),
+        .files = &(source_files.libnds_arm7_asm ++ source_files.libnds_common_asm),
+        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+    });
+
+    return libnds;
 }
 
 

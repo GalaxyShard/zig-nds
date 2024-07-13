@@ -192,14 +192,14 @@ fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateO
 
 fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
     const fatfs_dep = b.dependency("wf-fatfs", .{});
-    const libnds_dep = b.dependency("nds", .{});
+    const libnds_dep = b.dependency("libnds", .{});
 
     const extra_libnds_flags = (
         if (options.optimize == .Debug) .{ "-fstack-protector-strong" }
         else .{ "" }
     );
 
-    const libnds = create_arm7_arm9(b, "libnds", .{
+    const libnds = create_arm7_arm9(b, "nds", .{
         .nds7_target = options.nds7_target,
         .nds9_target = options.nds9_target,
         .optimize = options.optimize,

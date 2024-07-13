@@ -4,13 +4,9 @@ const builtin = @import("builtin");
 const source_files = @import("source-files.zig");
 
 const libnds_flags = .{
-    "-std=gnu23",
-    "-Wall", "-Wextra",
-    //"-Wpedantic",
-    "-Wstrict-prototypes", "-Wshadow",
-//     "-nostdinc", // no standard include paths
+    "-Wno-pedantic",
+    "-Wshadow",
     "-DPATH_MAX=1024", // HACK: this should not be needed, limits.h is somehow not included properly by Zig/LLVM
-//     "-nostdinc++",
 };
 const default_warn_flags = .{
     "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes"
@@ -130,12 +126,12 @@ pub fn build(b: *std.Build) !void {
     nds9.addCSourceFiles(.{
         .root = libnds_c.path("source"),
         .files = &(source_files.libnds_arm9_c ++ source_files.libnds_common_c),
-        .flags = &(libnds_flags ++ extra_libnds_flags),
+        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
     });
     nds9.addCSourceFiles(.{
         .root = libnds_c.path("source"),
         .files = &(source_files.libnds_arm9_asm ++ source_files.libnds_common_asm),
-        .flags = &(libnds_flags ++ extra_libnds_flags),
+        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
     });
 
     b.installArtifact(nds9);
@@ -172,15 +168,20 @@ pub fn build(b: *std.Build) !void {
     nds7.addCSourceFiles(.{
         .root = libnds_c.path("source"),
         .files = &(source_files.libnds_arm7_c ++ source_files.libnds_common_c),
-        .flags = &(libnds_flags ++ extra_libnds_flags),
+        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
     });
     nds7.addCSourceFiles(.{
         .root = libnds_c.path("source"),
         .files = &(source_files.libnds_arm7_asm ++ source_files.libnds_common_asm),
-        .flags = &(libnds_flags ++ extra_libnds_flags),
+        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
     });
 
     b.installArtifact(nds7);
+
+    const nds7_module = b.addModule("nds7", .{
+        .root_source_file = b.path("src/arm7.zig"),
+    });
+    nds7_module.linkLibrary(nds7);
 
 
 
@@ -211,23 +212,151 @@ pub fn build(b: *std.Build) !void {
     }
 
 
-//     const lib_options = .{
-//         .nds9_target = nds9_target,
-//         .nds7_target = nds7_target,
-//         .optimize = optimize,
-//     };
-//     build_dswifi(b, lib_options);
+    const lib_options = .{
+        .nds9_target = nds9_target,
+        .nds7_target = nds7_target,
+        .optimize = optimize,
+    };
+    _ = build_dswifi(b, lib_options);
+    _ = build_maxmod(b, lib_options);
 
 
 
     b.default_step.dependOn(tools_step);
 }
 
+const LibraryOutput = struct {
+    arm9: *std.Build.Step.Compile,
+    arm7: *std.Build.Step.Compile,
+    arm9_module: *std.Build.Module,
+    arm7_module: *std.Build.Module,
+};
+const CreateOptions = struct {
+    nds9_target: std.Build.ResolvedTarget,
+    nds7_target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+};
+fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateOptions) LibraryOutput {
+    const arm9 = b.addStaticLibrary(.{
+        .name = name ++ "9",
+        .target = options.nds9_target,
+        .link_libc = true,
+        .optimize = options.optimize,
+
+        // Optimization option
+        .omit_frame_pointer = true,
+    });
+
+    const arm7 = b.addStaticLibrary(.{
+        .name = name ++ "7",
+        .target = options.nds7_target,
+        .link_libc = true,
+        .optimize = options.optimize,
+
+        // Optimization option
+        .omit_frame_pointer = true,
+    });
+
+    arm9.setLibCFile(b.path("libc.txt"));
+    arm7.setLibCFile(b.path("libc.txt"));
+
+    arm9.root_module.addCMacro("__NDS__", "");
+    arm7.root_module.addCMacro("__NDS__", "");
+
+    arm9.root_module.addCMacro("ARM9", "");
+    arm7.root_module.addCMacro("ARM7", "");
+    if (options.optimize != .Debug) {
+        arm9.root_module.addCMacro("NDEBUG", "");
+        arm7.root_module.addCMacro("NDEBUG", "");
+    }
+
+    const arm9_module = b.addModule(name ++ "9", .{});
+    const arm7_module = b.addModule(name ++ "7", .{});
+
+    arm9_module.linkLibrary(arm9);
+    arm7_module.linkLibrary(arm7);
+
+    b.installArtifact(arm9);
+    b.installArtifact(arm7);
+
+    return .{
+        .arm9 = arm9,
+        .arm7 = arm7,
+        .arm9_module = arm9_module,
+        .arm7_module = arm7_module,
+    };
+}
 
 
-// fn build_dswifi(b: *std.Build, options: LibOptions) void {
-//
-// }
+
+fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
+    const dswifi_dep = b.dependency("dswifi", .{});
+    const libnds_dep = b.dependency("libnds", .{});
+
+    const dswifi = create_arm7_arm9(b, "dswifi", .{
+        .nds7_target = options.nds7_target,
+        .nds9_target = options.nds9_target,
+        .optimize = options.optimize,
+    });
+    if (options.optimize == .Debug) {
+        dswifi.arm9.root_module.addCMacro("SGIP_DEBUG", "");
+        dswifi.arm7.root_module.addCMacro("SGIP_DEBUG", "");
+    }
+
+
+    dswifi.arm9.addCSourceFiles(.{
+        .root = dswifi_dep.path("source"),
+        .files = &(source_files.dswifi_arm9_c ++ source_files.dswifi_common_asm),
+        .flags = &(default_c_flags),
+    });
+    dswifi.arm7.addCSourceFiles(.{
+        .root = dswifi_dep.path("source"),
+        .files = &(source_files.dswifi_arm7_c ++ source_files.dswifi_common_asm),
+        .flags = &(default_c_flags),
+    });
+    dswifi.arm9.addIncludePath(libnds_dep.path("include"));
+    dswifi.arm9.addIncludePath(dswifi_dep.path("include"));
+    dswifi.arm9.addIncludePath(dswifi_dep.path("source/common"));
+
+    dswifi.arm7.addIncludePath(libnds_dep.path("include"));
+    dswifi.arm7.addIncludePath(dswifi_dep.path("include"));
+    dswifi.arm7.addIncludePath(dswifi_dep.path("source/common"));
+
+    return dswifi;
+}
+
+
+
+fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
+    const maxmod_dep = b.dependency("maxmod", .{});
+
+    const maxmod = create_arm7_arm9(b, "maxmod", .{
+        .nds7_target = options.nds7_target,
+        .nds9_target = options.nds9_target,
+        .optimize = options.optimize,
+    });
+    maxmod.arm9.root_module.addCMacro("SYS_NDS", "");
+    maxmod.arm7.root_module.addCMacro("SYS_NDS", "");
+
+    maxmod.arm9.root_module.addCMacro("SYS_NDS9", "");
+    maxmod.arm7.root_module.addCMacro("SYS_NDS7", "");
+
+
+    maxmod.arm9.addCSourceFiles(.{
+        .root = maxmod_dep.path(""),
+        .files = &(source_files.maxmod_arm9_asm ++ source_files.maxmod_common_asm),
+        .flags = &(default_c_flags),
+    });
+    maxmod.arm7.addCSourceFiles(.{
+        .root = maxmod_dep.path(""),
+        .files = &(source_files.maxmod_arm7_asm ++ source_files.maxmod_common_asm),
+        .flags = &(default_c_flags),
+    });
+    maxmod.arm9.addIncludePath(maxmod_dep.path("asm_include"));
+    maxmod.arm7.addIncludePath(maxmod_dep.path("asm_include"));
+
+    return maxmod;
+}
 
 
 

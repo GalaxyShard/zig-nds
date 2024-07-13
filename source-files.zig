@@ -1,12 +1,51 @@
-// cd libnds
-// find -L source -name "*.c" | grep -E -o arm9/.+
-// find -L source -name "*.S | grep -E -o arm9/.+
 
-// find -L source -name "*.c" | grep -E -o common/.+
-// find -L source -name "*.S" | grep -E -o common/.+
+// echo "pub const a = .{"; for f in $(find ~/.cache/zig/p/HASH/ | grep -Eo "source/.+"); do echo "    \"$f\","; done; echo "};"
 
-// find -L source -name "*.c" | grep -E -o arm7/.+
-// find -L source -name "*.S" | grep -E -o arm7/.+
+pub const maxmod_arm7_asm = .{
+    "source/mm_effect.s",
+    "source/mm_main.s",
+    "source/mm_mas.s",
+    "source/mm_mas_arm.s",
+    "source_ds7/mm_comms7.s",
+    "source_ds7/mm_mixer_super.s",
+    "source_ds7/mm_reverb.s",
+    "source_ds7/mm_sleep.s",
+};
+pub const maxmod_arm9_asm = .{
+    "source_ds9/mm_comms.s",
+    "source_ds9/mm_flusher.s",
+    "source_ds9/mm_main9.s",
+    "source_ds9/mm_memory.s",
+    "source_ds9/mm_soundbank.s",
+};
+pub const maxmod_common_asm = .{
+    "source_ds/mm_stream.s",
+};
+
+
+
+pub const dswifi_arm7_c = .{
+    "arm7/wifi_arm7.c",
+};
+pub const dswifi_arm9_c = .{
+    "arm9/sgIP_ARP.c",
+    "arm9/sgIP_TCP.c",
+    "arm9/sgIP_memblock.c",
+    "arm9/sgIP.c",
+    "arm9/sgIP_UDP.c",
+    "arm9/sgIP_ICMP.c",
+    "arm9/sgIP_sockets.c",
+    "arm9/sgIP_DHCP.c",
+    "arm9/wifi_arm9.c",
+    "arm9/sgIP_IP.c",
+    "arm9/sgIP_DNS.c",
+    "arm9/sgIP_Hub.c",
+};
+pub const dswifi_common_asm = .{
+    "common/spinlock.s",
+};
+
+
 
 pub const fatfs_c = .{
     "ffunicode.c",
@@ -141,7 +180,7 @@ pub const libnds_arm9_c = .{
     "arm9/video/window.c",
     "arm9/console.c",
     "arm9/linkedlist.c",
-//     "arm9/decompress.c",
+    //     "arm9/decompress.c",
     "arm9/sassert.c",
     "arm9/pcx.c",
     "arm9/dynamicArray.c",

@@ -4,12 +4,11 @@ const builtin = @import("builtin");
 const source_files = @import("source-files.zig");
 
 const libnds_flags = .{
-    "-Wno-pedantic",
     "-Wshadow",
     "-DPATH_MAX=1024", // HACK: this should not be needed, limits.h is somehow not included properly by Zig/LLVM
 };
 const default_warn_flags = .{
-    "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes"
+    "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
 };
 const default_c_flags = default_warn_flags ++ .{ "-std=gnu23" };
 const default_cpp_flags = default_warn_flags ++ .{ "-std=gnu++17" };
@@ -89,8 +88,8 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     };
     const libnds = build_libnds(b, lib_options);
-    _ = build_dswifi(b, lib_options);
-    _ = build_maxmod(b, lib_options);
+    const dswifi = build_dswifi(b, lib_options);
+    const maxmod = build_maxmod(b, lib_options);
 
 
 
@@ -122,8 +121,44 @@ pub fn build(b: *std.Build) !void {
     }
 
 
+
+    const dswifi_dep = b.dependency("dswifi", .{});
+    const maxmod_dep = b.dependency("maxmod", .{});
+    const blocksds_tree = b.dependency("blocksds-tree", .{});
+
+    const default_arm7 = b.addExecutable(.{
+        .name = "default_arm7",
+        .target = nds7_target,
+        .link_libc = true,
+        .optimize = optimize,
+
+        // Optimization option
+        .omit_frame_pointer = true,
+    });
+    default_arm7.root_module.addCMacro("ARM7", "");
+
+    // TODO: remove dependency on external toolchain
+    default_arm7.setLibCFile(b.path("libc.txt"));
+
+    default_arm7.addCSourceFile(.{
+        .file = blocksds_tree.path("sys/default_arm7/source/main.c"),
+        .flags = &(default_c_flags),
+    });
+
+    default_arm7.addIncludePath(libnds_dep.path("include"));
+    default_arm7.addIncludePath(dswifi_dep.path("include"));
+    default_arm7.addIncludePath(maxmod_dep.path("include"));
+    default_arm7.addIncludePath(b.path(""));
+
+    default_arm7.linkLibrary(libnds.arm7);
+    default_arm7.linkLibrary(dswifi.arm7);
+    default_arm7.linkLibrary(maxmod.arm7);
+
+    b.default_step.dependOn(&default_arm7.step);
     b.default_step.dependOn(tools_step);
 }
+
+
 
 const LibraryOutput = struct {
     arm9: *std.Build.Step.Compile,

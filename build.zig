@@ -12,6 +12,7 @@ const default_warn_flags = .{
 };
 const default_c_flags = default_warn_flags ++ .{ "-std=gnu23" };
 const default_cpp_flags = default_warn_flags ++ .{ "-std=gnu++17" };
+const default_asm_flags = default_warn_flags;
 
 const ToolOptions = struct {
     target: std.Build.ResolvedTarget,
@@ -22,7 +23,15 @@ const ToolOptions = struct {
 const LibOptions = struct {
     nds9_target: std.Build.ResolvedTarget,
     nds7_target: std.Build.ResolvedTarget,
+//     nds7_arm: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+};
+const DefaultArm7Options = struct {
+    nds7_target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    libnds7: *std.Build.Step.Compile,
+    dswifi7: *std.Build.Step.Compile,
+//     maxmod7: *std.Build.Step.Compile,
 };
 
 pub fn build(b: *std.Build) !void {
@@ -64,7 +73,7 @@ pub fn build(b: *std.Build) !void {
 
 
 
-    const nds9_target = b.resolveTargetQuery(.{
+    const nds9_target_thumb = b.resolveTargetQuery(.{
         // nice resource: https://wiki.debian.org/ArmEabiPort#Thumb_interworking_suggests_armv4t
         // TODO: check if thumb interworking must be enabled
         // debian.org suggests it is required by .eabi
@@ -73,23 +82,31 @@ pub fn build(b: *std.Build) !void {
         .cpu_model = .{ .explicit = &std.Target.arm.cpu.arm946e_s },
         .abi = .eabi,
     });
-    const nds7_target = b.resolveTargetQuery(.{
+    const nds7_target_thumb = b.resolveTargetQuery(.{
         .cpu_arch = .thumb,
         .os_tag = .freestanding,
         .cpu_model = .{ .explicit = &std.Target.arm.cpu.arm7tdmi },
         .abi = .eabi,
     });
+//     const nds7_target_arm = b.resolveTargetQuery(.{
+//         .cpu_arch = .arm,
+//         .os_tag = .freestanding,
+//         .cpu_model = .{ .explicit = &std.Target.arm.cpu.arm7tdmi },
+//         .abi = .eabi,
+//     });
 
 
 
     const lib_options = .{
-        .nds9_target = nds9_target,
-        .nds7_target = nds7_target,
+        .nds9_target = nds9_target_thumb,
+        .nds7_target = nds7_target_thumb,
+//         .nds7_arm = nds7_target_arm,
         .optimize = optimize,
     };
     const libnds = build_libnds(b, lib_options);
     const dswifi = build_dswifi(b, lib_options);
-    const maxmod = build_maxmod(b, lib_options);
+//     const maxmod = build_maxmod(b, lib_options);
+    _ = build_crts(b, lib_options);
 
 
 
@@ -116,45 +133,20 @@ pub fn build(b: *std.Build) !void {
         libnds.arm9.addCSourceFile(.{
             .file = wf.getDirectory().path(b, image.name ++ ".c"),
             .flags = &(default_c_flags),
+            .language = .c,
         });
         libnds.arm9.step.dependOn(&convert.step);
     }
 
 
-
-    const dswifi_dep = b.dependency("dswifi", .{});
-    const maxmod_dep = b.dependency("maxmod", .{});
-    const blocksds_tree = b.dependency("blocksds-tree", .{});
-
-    const default_arm7 = b.addExecutable(.{
-        .name = "default_arm7",
-        .target = nds7_target,
-        .link_libc = true,
+    _ = build_default_arm7(b, .{
+        .nds7_target = nds7_target_thumb,
         .optimize = optimize,
-
-        // Optimization option
-        .omit_frame_pointer = true,
-    });
-    default_arm7.root_module.addCMacro("ARM7", "");
-
-    // TODO: remove dependency on external toolchain
-    default_arm7.setLibCFile(b.path("libc.txt"));
-
-    default_arm7.addCSourceFile(.{
-        .file = blocksds_tree.path("sys/default_arm7/source/main.c"),
-        .flags = &(default_c_flags),
+        .libnds7 = libnds.arm7,
+        .dswifi7 = dswifi.arm7,
+//         .maxmod7 = maxmod.arm7,
     });
 
-    default_arm7.addIncludePath(libnds_dep.path("include"));
-    default_arm7.addIncludePath(dswifi_dep.path("include"));
-    default_arm7.addIncludePath(maxmod_dep.path("include"));
-    default_arm7.addIncludePath(b.path(""));
-
-    default_arm7.linkLibrary(libnds.arm7);
-    default_arm7.linkLibrary(dswifi.arm7);
-    default_arm7.linkLibrary(maxmod.arm7);
-
-    b.default_step.dependOn(&default_arm7.step);
     b.default_step.dependOn(tools_step);
 }
 
@@ -225,6 +217,49 @@ fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateO
 
 
 
+fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Step.Compile {
+    const libnds_dep = b.dependency("libnds", .{});
+    const dswifi_dep = b.dependency("dswifi", .{});
+    const maxmod_dep = b.dependency("maxmod", .{});
+    const blocksds_tree = b.dependency("blocksds-tree", .{});
+
+    const default_arm7 = b.addExecutable(.{
+        .name = "default_arm7",
+        .target = options.nds7_target,
+        .link_libc = true,
+        .optimize = options.optimize,
+
+        // Optimization option
+        .omit_frame_pointer = true,
+    });
+    default_arm7.root_module.addCMacro("ARM7", "");
+
+    // TODO: remove dependency on external toolchain
+    default_arm7.setLibCFile(b.path("libc.txt"));
+
+    default_arm7.addCSourceFile(.{
+        .file = blocksds_tree.path("sys/default_arm7/source/main.c"),
+        .flags = &(default_c_flags),
+        .language = .c,
+    });
+
+    default_arm7.addIncludePath(libnds_dep.path("include"));
+    default_arm7.addIncludePath(dswifi_dep.path("include"));
+    default_arm7.addIncludePath(maxmod_dep.path("include"));
+    default_arm7.addIncludePath(b.path(""));
+
+    default_arm7.linkLibrary(options.libnds7);
+    default_arm7.linkLibrary(options.dswifi7);
+//     default_arm7.linkLibrary(options.maxmod7);
+
+//     b.default_step.dependOn(&default_arm7.step);
+    b.installArtifact(default_arm7);
+
+    return default_arm7;
+}
+
+
+
 fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
     const fatfs_dep = b.dependency("wf-fatfs", .{});
     const libnds_dep = b.dependency("libnds", .{});
@@ -246,6 +281,7 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
     libnds.arm9.addCSourceFiles(.{
         .root = fatfs_dep.path("source"),
         .files = &source_files.fatfs_c,
+        .language = .c,
     });
 
     libnds.arm9.addIncludePath(libnds_dep.path("include"));
@@ -257,11 +293,13 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
         .root = libnds_dep.path("source"),
         .files = &(source_files.libnds_arm9_c ++ source_files.libnds_common_c),
         .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+        .language = .c,
     });
     libnds.arm9.addCSourceFiles(.{
         .root = libnds_dep.path("source"),
         .files = &(source_files.libnds_arm9_asm ++ source_files.libnds_common_asm),
-        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+        .flags = &(default_asm_flags ++ libnds_flags ++ extra_libnds_flags),
+        .language = .assembly_with_cpp,
     });
 
 
@@ -273,12 +311,14 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
     libnds.arm7.addCSourceFiles(.{
         .root = libnds_dep.path("source"),
         .files = &(source_files.libnds_arm7_c ++ source_files.libnds_common_c),
-        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+        .flags = &(default_c_flags ++ libnds_flags),
+        .language = .c,
     });
     libnds.arm7.addCSourceFiles(.{
         .root = libnds_dep.path("source"),
         .files = &(source_files.libnds_arm7_asm ++ source_files.libnds_common_asm),
-        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+        .flags = &(default_asm_flags ++ libnds_flags),
+        .language = .assembly_with_cpp,
     });
 
     return libnds;
@@ -304,12 +344,14 @@ fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
     dswifi.arm9.addCSourceFiles(.{
         .root = dswifi_dep.path("source"),
         .files = &(source_files.dswifi_arm9_c ++ source_files.dswifi_common_asm),
-        .flags = &(default_c_flags),
+        .flags = &(default_asm_flags),
+        .language = .c,
     });
     dswifi.arm7.addCSourceFiles(.{
         .root = dswifi_dep.path("source"),
         .files = &(source_files.dswifi_arm7_c ++ source_files.dswifi_common_asm),
-        .flags = &(default_c_flags),
+        .flags = &(default_asm_flags),
+        .language = .c,
     });
     dswifi.arm9.addIncludePath(libnds_dep.path("include"));
     dswifi.arm9.addIncludePath(dswifi_dep.path("include"));
@@ -342,12 +384,14 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
     maxmod.arm9.addCSourceFiles(.{
         .root = maxmod_dep.path(""),
         .files = &(source_files.maxmod_arm9_asm ++ source_files.maxmod_common_asm),
-        .flags = &(default_c_flags),
+        .flags = &(default_asm_flags),
+        .language = .assembly_with_cpp,
     });
     maxmod.arm7.addCSourceFiles(.{
         .root = maxmod_dep.path(""),
         .files = &(source_files.maxmod_arm7_asm ++ source_files.maxmod_common_asm),
-        .flags = &(default_c_flags),
+        .flags = &(default_asm_flags),
+        .language = .assembly_with_cpp,
     });
     maxmod.arm9.addIncludePath(maxmod_dep.path("asm_include"));
     maxmod.arm7.addIncludePath(maxmod_dep.path("asm_include"));
@@ -360,29 +404,33 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
 fn build_crts(b: *std.Build, options: LibOptions) void {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
 
-    // vram and iwram use the same crt
+    // VRAM and IWRAM use the same object file, and the same assembly file as arm7_crt0
     const arm7_vram_crt0 = b.addObject(.{
-        .name = "ds_arm7_vram_crt0",
+        .name = "ds_arm7_vram_iwram_crt0",
         .target = options.nds7_target,
         .optimize = options.optimize,
         .omit_frame_pointer = true,
     });
+    // compile arm7_crt0 as VRAM/IWRAM
     arm7_vram_crt0.root_module.addCMacro("VRAM", "");
+
     arm7_vram_crt0.root_module.addCMacro("__NDS__", "");
     arm7_vram_crt0.root_module.addCMacro("ARM7", "");
     if (options.optimize != .Debug) {
         arm7_vram_crt0.root_module.addCMacro("NDEBUG", "");
     }
     arm7_vram_crt0.addCSourceFile(.{
-        .file = blocksds_tree.path("ds_arm7_crt0.s"),
+        .file = blocksds_tree.path("sys/crts/ds_arm7_crt0.s"),
         .flags = &.{},
+        .language = .assembly_with_cpp,
     });
-//     b.installArtifact(arm7_vram_crt0);
+    b.default_step.dependOn(&b.addInstallBinFile(arm7_vram_crt0.getEmittedBin(), "ds_arm7_vram_crt0.o").step);
+    b.default_step.dependOn(&b.addInstallBinFile(arm7_vram_crt0.getEmittedBin(), "ds_arm7_iwram_crt0.o").step);
 
 
 
     const arm7_crt0 = b.addObject(.{
-        .name = "ds_arm7_vram_crt0",
+        .name = "ds_arm7_crt0",
         .target = options.nds7_target,
         .optimize = options.optimize,
         .omit_frame_pointer = true,
@@ -393,15 +441,16 @@ fn build_crts(b: *std.Build, options: LibOptions) void {
         arm7_crt0.root_module.addCMacro("NDEBUG", "");
     }
     arm7_crt0.addCSourceFile(.{
-        .file = blocksds_tree.path("ds_arm7_crt0.s"),
+        .file = blocksds_tree.path("sys/crts/ds_arm7_crt0.s"),
         .flags = &.{},
+        .language = .assembly_with_cpp,
     });
-//     b.installArtifact(arm7_crt0);
+    b.default_step.dependOn(&b.addInstallBinFile(arm7_crt0.getEmittedBin(), "ds_arm7_crt0.o").step);
 
 
 
     const arm9_crt0 = b.addObject(.{
-        .name = "ds_arm7_vram_crt0",
+        .name = "ds_arm9_crt0",
         .target = options.nds9_target,
         .optimize = options.optimize,
         .omit_frame_pointer = true,
@@ -412,10 +461,12 @@ fn build_crts(b: *std.Build, options: LibOptions) void {
         arm9_crt0.root_module.addCMacro("NDEBUG", "");
     }
     arm9_crt0.addCSourceFile(.{
-        .file = blocksds_tree.path("ds_arm9_crt0.s"),
+        .file = blocksds_tree.path("sys/crts/ds_arm9_crt0.s"),
         .flags = &.{},
+        .language = .assembly_with_cpp,
     });
-//     b.installArtifact(arm9_crt0);
+    b.default_step.dependOn(&b.addInstallBinFile(arm9_crt0.getEmittedBin(), "ds_arm9_crt0.o").step);
+
 }
 
 
@@ -456,6 +507,7 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
             "-Wno-tautological-compare",
 //             GCC: "-Wno-class-memaccess", "-Wno-maybe-uninitialized", "-Wno-format-truncation"
         },
+        .language = .c,
     });
     exe.addObjectFile(libplum.getEmittedBin());
 
@@ -463,6 +515,7 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .root = grit_c.path(""),
         .files = &source_files.grit_cpp,
         .flags = &default_cpp_flags,
+        .language = .cpp,
     });
     const include = .{"cldib", "extlib", "libgrit", "libplum", "srcgrit"};
     inline for (include) |path| {
@@ -493,6 +546,7 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .root = ndstool_c.path("source"),
         .files = &source_files.ndstool_c,
         .flags = &default_c_flags,
+        .language = .c,
     });
     exe.addCSourceFiles(.{
         .root = ndstool_c.path("source"),
@@ -501,6 +555,7 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
             "-Wno-unused-result",
             // GCC: "-Wno-class-memaccess", "-Wno-stringop-truncation"
         }),
+        .language = .cpp,
     });
 
 
@@ -511,6 +566,7 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
             exe.addCSourceFile(.{
                 .file = win_iconv_c.path("win_iconv.c"),
                 .flags = &default_c_flags,
+                .language = .c,
             });
             exe.addIncludePath(win_iconv_c.path(""));
         }
@@ -556,6 +612,7 @@ fn build_bin2c(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFile(.{
         .file = blocksds_tree.path("tools/bin2c/bin2c.c"),
         .flags = &default_c_flags,
+        .language = .c,
     });
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
@@ -574,6 +631,7 @@ fn build_dldipatch(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
     exe.addCSourceFile(.{
         .file = dldipatch_c.path("dldipatch.c"),
         .flags = &default_c_flags,
+        .language = .c,
     });
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
@@ -592,6 +650,7 @@ fn build_dlditool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFile(.{
         .file = blocksds_tree.path("tools/dlditool/dlditool.c"),
         .flags = &(default_warn_flags ++ .{ "-std=gnu17" }), // TODO: doesn't compile with gnu23
+        .language = .c,
     });
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
@@ -613,6 +672,7 @@ fn build_mkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
             "diskio.c", "ff.c", "ffsystem.c", "ffunicode.c", "main.c",
         },
         .flags = &default_c_flags,
+        .language = .c,
     });
     exe.addIncludePath(blocksds_tree.path("tools/mkfatimg/source"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
@@ -634,6 +694,7 @@ fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .root = mmutil_c.path("source"),
         .files = &source_files.mmutil_c,
         .flags = &(default_warn_flags ++ .{ "-std=gnu17" }), // TODO: doesn't compile with gnu23
+        .language = .c,
     });
     exe.addIncludePath(mmutil_c.path("source"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
@@ -656,6 +717,7 @@ fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
         .flags = &(default_c_flags ++ .{
             "-Wno-sign-compare", "-Wno-unused-parameter", "-Wno-unused-function",
         }),
+        .language = .c,
     });
     exe.addIncludePath(squeezer_c.path("src"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
@@ -680,6 +742,7 @@ fn build_teaktool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
             "elf.c", "main.c",
         },
         .flags = &default_c_flags,
+        .language = .c,
     });
     exe.addIncludePath(blocksds_tree.path("tools/teaktool/source"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);

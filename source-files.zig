@@ -187,14 +187,14 @@ pub const libnds_arm9_c = .{
     "arm9/keyboard.c",
 };
 pub const libnds_arm9_asm = .{
-    "arm9/storage/dldi_stub.S",
-    "arm9/teak/utils.twl.S",
-    "arm9/system/IntrWait.S",
-    "arm9/system/cp15.S",
-    "arm9/system/vectorbase.S",
-    "arm9/system/mpu_setup.S",
-    "arm9/system/cpu_clock.S",
-    "arm9/system/exceptionHandler.S",
+    "arm9/storage/dldi_stub.s",
+    "arm9/teak/utils.twl.s",
+    "arm9/system/IntrWait.s",
+    "arm9/system/cp15.s",
+    "arm9/system/vectorbase.s",
+    "arm9/system/mpu_setup.s",
+    "arm9/system/cpu_clock.s",
+    "arm9/system/exceptionHandler.s",
 };
 pub const libnds_common_c = .{
     "common/cardEeprom.c",
@@ -218,21 +218,21 @@ pub const libnds_common_c = .{
     "common/fifosystem.c",
 };
 pub const libnds_common_asm = .{
-    "common/biosCalls.twl.S",
-    "common/dma.S",
-    "common/cothread/aeabi_read_tp.S",
-    "common/swiSoftReset.S",
-    "common/cpu.S",
-    "common/ndsabi/rmemcpy.S",
-    "common/ndsabi/memset.S",
-    "common/ndsabi/context.S",
-    "common/ndsabi/memcpy.S",
-    "common/ndsabi/memmove.S",
-    "common/ndsabi/fiq_memcpy.S",
-    "common/ndsabi/coroutine.S",
-    "common/interruptDispatcher.S",
-    "common/biosCalls.S",
-    "common/debugprint.S",
+    "common/biosCalls.twl.s",
+    "common/dma.s",
+    "common/cothread/aeabi_read_tp.s",
+    "common/swiSoftReset.s",
+    "common/cpu.s",
+    "common/ndsabi/rmemcpy.s",
+    "common/ndsabi/memset.s",
+    "common/ndsabi/context.s",
+    "common/ndsabi/memcpy.s",
+    "common/ndsabi/memmove.s",
+    "common/ndsabi/fiq_memcpy.s",
+    "common/ndsabi/coroutine.s",
+    "common/interruptDispatcher.s",
+    "common/biosCalls.s",
+    "common/debugprint.s",
 };
 pub const libnds_arm7_c = .{
     "arm7/audio.c",
@@ -263,5 +263,5 @@ pub const libnds_arm7_c = .{
     "arm7/userSettings.c",
 };
 pub const libnds_arm7_asm = .{
-    "arm7/intrwait.S",
+    "arm7/intrwait.s",
 };

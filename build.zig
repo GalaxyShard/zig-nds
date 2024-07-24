@@ -343,16 +343,30 @@ fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
 
     dswifi.arm9.addCSourceFiles(.{
         .root = dswifi_dep.path("source"),
-        .files = &(source_files.dswifi_arm9_c ++ source_files.dswifi_common_asm),
-        .flags = &(default_asm_flags),
+        .files = &source_files.dswifi_arm9_c,
+        .flags = &default_c_flags,
+        .language = .c,
+    });
+    dswifi.arm9.addCSourceFiles(.{
+        .root = dswifi_dep.path("source"),
+        .files = &source_files.dswifi_common_asm,
+        .flags = &default_asm_flags,
+        .language = .assembly_with_cpp,
+    });
+
+    dswifi.arm7.addCSourceFiles(.{
+        .root = dswifi_dep.path("source"),
+        .files = &source_files.dswifi_arm7_c,
+        .flags = &default_c_flags,
         .language = .c,
     });
     dswifi.arm7.addCSourceFiles(.{
         .root = dswifi_dep.path("source"),
-        .files = &(source_files.dswifi_arm7_c ++ source_files.dswifi_common_asm),
-        .flags = &(default_asm_flags),
-        .language = .c,
+        .files = &source_files.dswifi_common_asm,
+        .flags = &default_asm_flags,
+        .language = .assembly_with_cpp,
     });
+
     dswifi.arm9.addIncludePath(libnds_dep.path("include"));
     dswifi.arm9.addIncludePath(dswifi_dep.path("include"));
     dswifi.arm9.addIncludePath(dswifi_dep.path("source/common"));

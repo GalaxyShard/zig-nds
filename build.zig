@@ -23,7 +23,12 @@ const ToolOptions = struct {
 const LibOptions = struct {
     nds9_target: std.Build.ResolvedTarget,
     nds7_target: std.Build.ResolvedTarget,
-//     nds7_arm: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    make_libc_file: *std.Build.Step.Run,
+};
+const CrtOptions = struct {
+    nds9_target: std.Build.ResolvedTarget,
+    nds7_target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 };
 const DefaultArm7Options = struct {
@@ -31,6 +36,7 @@ const DefaultArm7Options = struct {
     optimize: std.builtin.OptimizeMode,
     libnds7: *std.Build.Step.Compile,
     dswifi7: *std.Build.Step.Compile,
+    make_libc_file: *std.Build.Step.Run,
 //     maxmod7: *std.Build.Step.Compile,
 };
 
@@ -71,6 +77,14 @@ pub fn build(b: *std.Build) !void {
     _ = build_squeezerw(b, tool_options);
     _ = build_teaktool(b, tool_options);
 
+    const libc_file_builder = b.addExecutable(.{
+        .name = "libc_file_builder",
+        .target = b.resolveTargetQuery(.{}), // native
+        // Optimization passes waste more time than the program takes to run
+        .optimize = .Debug,
+        .root_source_file = b.path("build-libctxt.zig"),
+    });
+
 
 
     const nds9_target_thumb = b.resolveTargetQuery(.{
@@ -97,16 +111,30 @@ pub fn build(b: *std.Build) !void {
 
 
 
+    const crt_options = .{
+        .nds9_target = nds9_target_thumb,
+        .nds7_target = nds7_target_thumb,
+        .optimize = optimize,
+    };
+    const crt_directory = build_crts(b, crt_options);
+
+
+    const make_libc_file = b.addRunArtifact(libc_file_builder);
+    // TODO: remove dependency on external toolchain
+    make_libc_file.addArg("include_dir=/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/include");
+    make_libc_file.addArg("sys_include_dir=/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/include");
+    make_libc_file.addPrefixedDirectoryArg("crt_dir=", crt_directory.getDirectory());
+    b.default_step.dependOn(&make_libc_file.step);
+
     const lib_options = .{
         .nds9_target = nds9_target_thumb,
         .nds7_target = nds7_target_thumb,
-//         .nds7_arm = nds7_target_arm,
         .optimize = optimize,
+        .make_libc_file = make_libc_file,
     };
     const libnds = build_libnds(b, lib_options);
     const dswifi = build_dswifi(b, lib_options);
 //     const maxmod = build_maxmod(b, lib_options);
-    _ = build_crts(b, lib_options);
 
 
 
@@ -145,6 +173,7 @@ pub fn build(b: *std.Build) !void {
         .libnds7 = libnds.arm7,
         .dswifi7 = dswifi.arm7,
 //         .maxmod7 = maxmod.arm7,
+        .make_libc_file = make_libc_file,
     });
 
     b.default_step.dependOn(tools_step);
@@ -162,6 +191,7 @@ const CreateOptions = struct {
     nds9_target: std.Build.ResolvedTarget,
     nds7_target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    make_libc_file: *std.Build.Step.Run,
 };
 fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateOptions) LibraryOutput {
     const arm9 = b.addStaticLibrary(.{
@@ -184,9 +214,11 @@ fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateO
         .omit_frame_pointer = true,
     });
 
-    // TODO: remove dependency on external toolchain
-    arm9.setLibCFile(b.path("libc.txt"));
-    arm7.setLibCFile(b.path("libc.txt"));
+    arm9.setLibCFile(options.make_libc_file.captureStdOut());
+    arm7.setLibCFile(options.make_libc_file.captureStdOut());
+
+    arm9.step.dependOn(&options.make_libc_file.step);
+    arm7.step.dependOn(&options.make_libc_file.step);
 
     arm9.root_module.addCMacro("__NDS__", "");
     arm7.root_module.addCMacro("__NDS__", "");
@@ -223,19 +255,33 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
     const maxmod_dep = b.dependency("maxmod", .{});
     const blocksds_tree = b.dependency("blocksds-tree", .{});
 
+    const optimize = (
+        if (options.optimize != .Debug) options.optimize
+        else .ReleaseSafe
+    );
+
     const default_arm7 = b.addExecutable(.{
         .name = "default_arm7",
         .target = options.nds7_target,
         .link_libc = true,
-        .optimize = options.optimize,
+        .optimize = optimize,
 
         // Optimization option
         .omit_frame_pointer = true,
     });
+    default_arm7.link_gc_sections = true;
+
+    default_arm7.setLinkerScript(b.path("arm7-link-example.ld"));
     default_arm7.root_module.addCMacro("ARM7", "");
 
-    // TODO: remove dependency on external toolchain
-    default_arm7.setLibCFile(b.path("libc.txt"));
+    default_arm7.setLibCFile(options.make_libc_file.captureStdOut());
+    default_arm7.step.dependOn(&options.make_libc_file.step);
+//     default_arm7.addLibraryPath(.{ .cwd_relative = "/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/lib/arm7tdmi" });
+//     default_arm7.addObjectFile(.{ .cwd_relative = "/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/lib/arm7tdmi/libc.a" });
+//     default_arm7.addObjectFile(.{ .cwd_relative = "/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/lib/arm7tdmi/libm.a" });
+//     default_arm7.addObjectFile(.{ .cwd_relative = "/opt/blocksds/core/sys/crts/ds_arm7_crt0.o" });
+//     default_arm7.addObjectFile();
+//     default_arm7.addIncludePath(.{ .cwd_relative = "/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/include" });
 
     default_arm7.addCSourceFile(.{
         .file = blocksds_tree.path("sys/default_arm7/source/main.c"),
@@ -247,6 +293,7 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
     default_arm7.addIncludePath(dswifi_dep.path("include"));
     default_arm7.addIncludePath(maxmod_dep.path("include"));
     default_arm7.addIncludePath(b.path(""));
+
 
     default_arm7.linkLibrary(options.libnds7);
     default_arm7.linkLibrary(options.dswifi7);
@@ -273,6 +320,7 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
         .nds7_target = options.nds7_target,
         .nds9_target = options.nds9_target,
         .optimize = options.optimize,
+        .make_libc_file = options.make_libc_file,
     });
     libnds.arm9.root_module.root_source_file = b.path("src/arm9.zig");
     libnds.arm7.root_module.root_source_file = b.path("src/arm7.zig");
@@ -334,6 +382,7 @@ fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
         .nds7_target = options.nds7_target,
         .nds9_target = options.nds9_target,
         .optimize = options.optimize,
+        .make_libc_file = options.make_libc_file,
     });
     if (options.optimize == .Debug) {
         dswifi.arm9.root_module.addCMacro("SGIP_DEBUG", "");
@@ -387,6 +436,7 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
         .nds7_target = options.nds7_target,
         .nds9_target = options.nds9_target,
         .optimize = options.optimize,
+        .make_libc_file = options.make_libc_file,
     });
     maxmod.arm9.root_module.addCMacro("SYS_NDS", "");
     maxmod.arm7.root_module.addCMacro("SYS_NDS", "");
@@ -415,10 +465,13 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
 
 
 
-fn build_crts(b: *std.Build, options: LibOptions) void {
+fn build_crts(b: *std.Build, options: CrtOptions) *std.Build.Step.WriteFile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
 
-    // VRAM and IWRAM use the same object file, and the same assembly file as arm7_crt0
+    const crt_directory = b.addWriteFiles();
+
+
+    // arm7 VRAM and IWRAM use the same object file, and the same assembly file as arm7_crt0
     const arm7_vram_crt0 = b.addObject(.{
         .name = "ds_arm7_vram_iwram_crt0",
         .target = options.nds7_target,
@@ -438,8 +491,8 @@ fn build_crts(b: *std.Build, options: LibOptions) void {
         .flags = &.{},
         .language = .assembly_with_cpp,
     });
-    b.default_step.dependOn(&b.addInstallBinFile(arm7_vram_crt0.getEmittedBin(), "ds_arm7_vram_crt0.o").step);
-    b.default_step.dependOn(&b.addInstallBinFile(arm7_vram_crt0.getEmittedBin(), "ds_arm7_iwram_crt0.o").step);
+    _ = crt_directory.addCopyFile(arm7_vram_crt0.getEmittedBin(), "ds_arm7_vram_crt0.o");
+    _ = crt_directory.addCopyFile(arm7_vram_crt0.getEmittedBin(), "ds_arm7_iwram_crt0.o");
 
 
 
@@ -459,7 +512,7 @@ fn build_crts(b: *std.Build, options: LibOptions) void {
         .flags = &.{},
         .language = .assembly_with_cpp,
     });
-    b.default_step.dependOn(&b.addInstallBinFile(arm7_crt0.getEmittedBin(), "ds_arm7_crt0.o").step);
+    _ = crt_directory.addCopyFile(arm7_crt0.getEmittedBin(), "ds_arm7_crt0.o");
 
 
 
@@ -479,8 +532,11 @@ fn build_crts(b: *std.Build, options: LibOptions) void {
         .flags = &.{},
         .language = .assembly_with_cpp,
     });
-    b.default_step.dependOn(&b.addInstallBinFile(arm9_crt0.getEmittedBin(), "ds_arm9_crt0.o").step);
+    _ = crt_directory.addCopyFile(arm9_crt0.getEmittedBin(), "ds_arm9_crt0.o");
 
+
+//     b.default_step.dependOn(&crt_directory.step);
+    return crt_directory;
 }
 
 

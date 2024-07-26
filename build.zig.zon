@@ -3,12 +3,11 @@
     .version = "0.0.0",
     .dependencies = .{
         .libnds = .{
-            .path = "../libnds-fork",
+            //.path = "../libnds-fork",
+            .url = "https://github.com/blocksds/libnds/archive/d4cbd740cee839c93b1426eaf7c35339599394eb.tar.gz",
+            //.url = "https://github.com/blocksds/libnds/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            .hash = "1220265127879d5158c148eccf5c7b0bae640aa95ff513080032ca65bee71d8c1204",
         },
-        // .libnds = .{
-        //     .url = "https://github.com/blocksds/libnds/archive/refs/tags/v1.3.0-blocks.tar.gz",
-        //     .hash = "12208698610e4009306c4a2aa8caf6d0ad4b812a8342ff0109688d0b575a4aac3a18",
-        // },
 
         .@"wf-fatfs" = .{
             .url = "https://github.com/WonderfulToolchain/wf-fatfs/archive/8b28d32c1f7d467f6c0090ddfc0ae912e2b3f738.tar.gz",
@@ -32,8 +31,9 @@
             .hash = "12200a143a02e7738be22d8825465201a61b6ddfdcf4c5f7fdf25254c7bdfc768770",
         },
         .@"blocksds-tree" = .{
-            .url = "https://github.com/blocksds/sdk/archive/refs/tags/v1.3.0.tar.gz",
-            .hash = "1220d982551251c80e14f0d5e31a20e1a761ddc4bbd5bd668d4a758d81f7ab187083",
+            .path = "../blocksds-sdk"
+            //.url = "https://github.com/blocksds/sdk/archive/refs/tags/v1.3.0.tar.gz",
+            //.hash = "1220d982551251c80e14f0d5e31a20e1a761ddc4bbd5bd668d4a758d81f7ab187083",
         },
         .dldipatch = .{
             .url = "https://github.com/blocksds/dldipatch/archive/refs/tags/v1.3.0-blocks.tar.gz",
@@ -44,12 +44,14 @@
             .hash = "1220b16d9175be9cd59b060b4e22ec0247ef7a9e96292bc8520197a610f0906f600e",
         },
         .dswifi = .{
-            .url = "https://github.com/blocksds/dswifi/archive/refs/tags/v1.3.0-blocks.tar.gz",
-            .hash = "12207dcf6c58d49e5cdb9475859fb900795d22094b0a5cda5e004d57c5659e49ecc5",
+            .path = "../dswifi-fork",
+            //.url = "https://github.com/blocksds/dswifi/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            //.hash = "12207dcf6c58d49e5cdb9475859fb900795d22094b0a5cda5e004d57c5659e49ecc5",
         },
         .maxmod = .{
-            .url = "https://github.com/blocksds/maxmod/archive/refs/tags/v1.3.0-blocks.tar.gz",
-            .hash = "122059b136ec39004b631f24be47bca693740545de369f8b11880228ce7c301a1bd3",
+            .path = "../maxmod-fork",
+            //.url = "https://github.com/blocksds/maxmod/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            //.hash = "122059b136ec39004b631f24be47bca693740545de369f8b11880228ce7c301a1bd3",
         },
     },
     .paths = .{

@@ -8,10 +8,12 @@ const libnds_flags = .{
     "-DPATH_MAX=1024", // HACK: this should not be needed, limits.h is somehow not included properly by Zig/LLVM
 };
 const default_warn_flags = .{
+    // TODO: add -Werror, otherwise these warnings are ignored and not displayed if the compilation was successful
     "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
+//     "-Werror",
 };
 const default_c_flags = default_warn_flags ++ .{ "-std=gnu23" };
-const default_cpp_flags = default_warn_flags ++ .{ "-std=gnu++17" };
+const default_cpp_flags = default_warn_flags ++ .{ "-std=gnu++23" };
 const default_asm_flags = default_warn_flags;
 
 const ToolOptions = struct {
@@ -160,7 +162,7 @@ pub fn build(b: *std.Build) !void {
 
         libnds.arm9.addCSourceFile(.{
             .file = wf.getDirectory().path(b, image.name ++ ".c"),
-            .flags = &(default_c_flags),
+            .flags = &default_c_flags,
             .language = .c,
         });
         libnds.arm9.step.dependOn(&convert.step);
@@ -285,7 +287,7 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
 
     default_arm7.addCSourceFile(.{
         .file = blocksds_tree.path("sys/default_arm7/source/main.c"),
-        .flags = &(default_c_flags),
+        .flags = &default_c_flags,
         .language = .c,
     });
 
@@ -448,13 +450,13 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
     maxmod.arm9.addCSourceFiles(.{
         .root = maxmod_dep.path(""),
         .files = &(source_files.maxmod_arm9_asm ++ source_files.maxmod_common_asm),
-        .flags = &(default_asm_flags),
+        .flags = &default_asm_flags,
         .language = .assembly_with_cpp,
     });
     maxmod.arm7.addCSourceFiles(.{
         .root = maxmod_dep.path(""),
         .files = &(source_files.maxmod_arm7_asm ++ source_files.maxmod_common_asm),
-        .flags = &(default_asm_flags),
+        .flags = &default_asm_flags,
         .language = .assembly_with_cpp,
     });
     maxmod.arm9.addIncludePath(maxmod_dep.path("asm_include"));
@@ -569,14 +571,7 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     }
     libplum.addCSourceFile(.{
         .file = grit_c.path("libplum/libplum.c"),
-        .flags = &.{
-            "-std=gnu17", // TODO: doesn't compile with gnu23
-            "-Wall",
-            "-Wno-dangling-else", "-Wno-parentheses", "-Wno-misleading-indentation", "-Wno-unused-result", "-Wno-comment", "-Wno-unused-variable", "-Wno-sign-compare", "-Wno-unused-value", "-Wno-unused-but-set-variable",
-            // Clang-specific
-            "-Wno-tautological-compare",
-//             GCC: "-Wno-class-memaccess", "-Wno-maybe-uninitialized", "-Wno-format-truncation"
-        },
+        .flags = &default_c_flags,
         .language = .c,
     });
     exe.addObjectFile(libplum.getEmittedBin());
@@ -621,10 +616,7 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFiles(.{
         .root = ndstool_c.path("source"),
         .files = &source_files.ndstool_cpp,
-        .flags = &(default_cpp_flags ++ .{
-            "-Wno-unused-result",
-            // GCC: "-Wno-class-memaccess", "-Wno-stringop-truncation"
-        }),
+        .flags = &default_cpp_flags,
         .language = .cpp,
     });
 
@@ -719,7 +711,7 @@ fn build_dlditool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     });
     exe.addCSourceFile(.{
         .file = blocksds_tree.path("tools/dlditool/dlditool.c"),
-        .flags = &(default_warn_flags ++ .{ "-std=gnu17" }), // TODO: doesn't compile with gnu23
+        .flags = &default_c_flags,
         .language = .c,
     });
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
@@ -763,7 +755,7 @@ fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.addCSourceFiles(.{
         .root = mmutil_c.path("source"),
         .files = &source_files.mmutil_c,
-        .flags = &(default_warn_flags ++ .{ "-std=gnu17" }), // TODO: doesn't compile with gnu23
+        .flags = &default_c_flags,
         .language = .c,
     });
     exe.addIncludePath(mmutil_c.path("source"));
@@ -784,9 +776,7 @@ fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
     exe.addCSourceFiles(.{
         .root = squeezer_c.path("src"),
         .files = &source_files.squeezer_c,
-        .flags = &(default_c_flags ++ .{
-            "-Wno-sign-compare", "-Wno-unused-parameter", "-Wno-unused-function",
-        }),
+        .flags = &default_c_flags,
         .language = .c,
     });
     exe.addIncludePath(squeezer_c.path("src"));

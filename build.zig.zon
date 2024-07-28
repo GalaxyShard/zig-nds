@@ -3,62 +3,67 @@
     .version = "0.0.0",
     .dependencies = .{
         .libnds = .{
-            //.path = "../libnds-fork",
-            .url = "https://github.com/blocksds/libnds/archive/d4cbd740cee839c93b1426eaf7c35339599394eb.tar.gz",
-            //.url = "https://github.com/blocksds/libnds/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            .url = "https://github.com/blocksds/libnds/archive/refs/tags/v1.3.1-blocks.tar.gz",
             .hash = "1220265127879d5158c148eccf5c7b0bae640aa95ff513080032ca65bee71d8c1204",
         },
 
         .@"wf-fatfs" = .{
+            // Keep this up to date with libnds
+            // BlocksDS 1.3.1
             .url = "https://github.com/WonderfulToolchain/wf-fatfs/archive/8b28d32c1f7d467f6c0090ddfc0ae912e2b3f738.tar.gz",
             .hash = "12209be2b05c1da2762a81cad790bebf69066b018c6525bac2d5813e103ebed2e6e9",
         },
         .grit = .{
-            .url = "https://github.com/blocksds/grit/archive/refs/tags/v1.3.0-blocks.tar.gz",
-            .hash = "122048bb2755275ce1afb1efa88376f302959bbf24e551e70588f8eed2535a4a622a",
+            .path = "../grit-fork",
+            //.url = "https://github.com/blocksds/grit/archive/refs/tags/v1.3.1-blocks.tar.gz",
+            //.hash = "122048bb2755275ce1afb1efa88376f302959bbf24e551e70588f8eed2535a4a622a",
         },
         .ndstool = .{
-            .url = "https://github.com/blocksds/ndstool/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            .url = "https://github.com/blocksds/ndstool/archive/refs/tags/v1.3.1-blocks.tar.gz",
             .hash = "1220a3a5135385bd53da6a8d7d94b8609c169e48cfb3bfe7f1e31fc2ebbd4555c8fa",
         },
         .@"win-iconv" = .{
+            // hasn't changed since 2016; targeting the master branch should not be an issue.
             .url = "https://github.com/win-iconv/win-iconv/archive/master.tar.gz",
             .hash = "1220ba796f7ae295829ed8f9ff693aaa4b8d3928dfb2def81aecaac8e291a3cfe9b9",
             .lazy = true,
         },
         .squeezer = .{
-            .url = "https://github.com/blocksds/squeezer/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            .url = "https://github.com/blocksds/squeezer/archive/refs/tags/v1.3.1-blocks.tar.gz",
             .hash = "12200a143a02e7738be22d8825465201a61b6ddfdcf4c5f7fdf25254c7bdfc768770",
         },
         .@"blocksds-tree" = .{
             .path = "../blocksds-sdk"
-            //.url = "https://github.com/blocksds/sdk/archive/refs/tags/v1.3.0.tar.gz",
+            //.url = "https://github.com/blocksds/sdk/archive/refs/tags/v1.3.1.tar.gz",
             //.hash = "1220d982551251c80e14f0d5e31a20e1a761ddc4bbd5bd668d4a758d81f7ab187083",
         },
         .dldipatch = .{
-            .url = "https://github.com/blocksds/dldipatch/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            .url = "https://github.com/blocksds/dldipatch/archive/refs/tags/v1.3.1-blocks.tar.gz",
             .hash = "122029558c7cab56e9f952803486b9a1a425cb75aa27eab40077dafa208556aa1618",
         },
         .mmutil = .{
-            .url = "https://github.com/blocksds/mmutil/archive/refs/tags/v1.3.0-blocks.tar.gz",
-            .hash = "1220b16d9175be9cd59b060b4e22ec0247ef7a9e96292bc8520197a610f0906f600e",
+            .url = "https://github.com/blocksds/mmutil/archive/4b605cef09853247374621a7648cc071a4761c61.tar.gz",
+            .hash = "12200d9a282e4ca55be9c41a7f8e4e61386225c3b4ecca42c4337b40c30082b74c96",
         },
         .dswifi = .{
             .path = "../dswifi-fork",
-            //.url = "https://github.com/blocksds/dswifi/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            //.url = "https://github.com/blocksds/dswifi/archive/refs/tags/v1.3.1-blocks.tar.gz",
             //.hash = "12207dcf6c58d49e5cdb9475859fb900795d22094b0a5cda5e004d57c5659e49ecc5",
         },
         .maxmod = .{
             .path = "../maxmod-fork",
-            //.url = "https://github.com/blocksds/maxmod/archive/refs/tags/v1.3.0-blocks.tar.gz",
+            //.url = "https://github.com/blocksds/maxmod/archive/refs/tags/v1.3.1-blocks.tar.gz",
             //.hash = "122059b136ec39004b631f24be47bca693740545de369f8b11880228ce7c301a1bd3",
         },
     },
     .paths = .{
         "src",
         "arm9-link-example.ld",
+        "arm7-link-example.ld",
         "libc.txt",
         "build.zig",
         "build.zig.zon",
+        "build-libctxt.zig",
+        "source-files.zig"
     },
 }

@@ -58,12 +58,8 @@
     },
     .paths = .{
         "src",
-        "arm9-link-example.ld",
-        "arm7-link-example.ld",
-        "libc.txt",
+        "util",
         "build.zig",
         "build.zig.zon",
-        "build-libctxt.zig",
-        "source-files.zig"
     },
 }

@@ -13,7 +13,6 @@ pub fn main() !void {
 
     const valid_keys = .{ "include_dir", "sys_include_dir", "crt_dir" };
 
-
     for (args[1..]) |arg| {
         var iter = std.mem.splitScalar(u8, arg, '=');
         const key = iter.next() orelse return error.InvalidOrMissingKey;
@@ -26,16 +25,10 @@ pub fn main() !void {
                 try output.writeAll("\n");
             }
         }
-//         std.process.exit()
-//         output.writeAll();
-//         std.debug.print("Argument: \"{s}\"\n", .{ arg });
     }
     try output.writeAll(
         \\msvc_lib_dir=
         \\kernel32_lib_dir=
         \\gcc_dir=
     );
-//     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-//     defer arena.deinit();
-//     arena.allocator();
 }

@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const source_files = @import("source-files.zig");
+const source_files = @import("util/source-files.zig");
 
 const libnds_flags = .{
     "-Wshadow",
@@ -84,7 +84,7 @@ pub fn build(b: *std.Build) !void {
         .target = b.resolveTargetQuery(.{}), // native
         // Optimization passes waste more time than the program takes to run
         .optimize = .Debug,
-        .root_source_file = b.path("build-libctxt.zig"),
+        .root_source_file = b.path("util/make-libc-file.zig"),
     });
 
 
@@ -273,7 +273,7 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
     });
     default_arm7.link_gc_sections = true;
 
-    default_arm7.setLinkerScript(b.path("arm7-link-example.ld"));
+    default_arm7.setLinkerScript(b.path("util/arm7-link-example.ld"));
     default_arm7.root_module.addCMacro("ARM7", "");
 
     default_arm7.setLibCFile(options.make_libc_file.captureStdOut());
@@ -294,14 +294,12 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
     default_arm7.addIncludePath(libnds_dep.path("include"));
     default_arm7.addIncludePath(dswifi_dep.path("include"));
     default_arm7.addIncludePath(maxmod_dep.path("include"));
-    default_arm7.addIncludePath(b.path(""));
 
 
     default_arm7.linkLibrary(options.libnds7);
     default_arm7.linkLibrary(options.dswifi7);
 //     default_arm7.linkLibrary(options.maxmod7);
 
-//     b.default_step.dependOn(&default_arm7.step);
     b.installArtifact(default_arm7);
 
     return default_arm7;
@@ -642,7 +640,7 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .target = options.target,
         .optimize = options.optimize,
         .link_libc = true,
-        .root_source_file = b.path("iconv-macos-stub.zig"),
+        .root_source_file = b.path("util/iconv-macos-stub.zig"),
     };
     const test_stub = b.addRunArtifact(b.addTest(stub_options));
     options.test_step.dependOn(&test_stub.step);

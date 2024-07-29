@@ -14,9 +14,8 @@
             .hash = "12209be2b05c1da2762a81cad790bebf69066b018c6525bac2d5813e103ebed2e6e9",
         },
         .grit = .{
-            .path = "../grit-fork",
-            //.url = "https://github.com/blocksds/grit/archive/refs/tags/v1.3.1-blocks.tar.gz",
-            //.hash = "122048bb2755275ce1afb1efa88376f302959bbf24e551e70588f8eed2535a4a622a",
+            .url = "https://github.com/blocksds/grit/archive/refs/tags/v1.3.1-blocks.tar.gz",
+            .hash = "122084fa6ff2fba618d5d80d998f6d0bff83609f574ae952d60f81da24c0e8ee6c80",
         },
         .ndstool = .{
             .url = "https://github.com/blocksds/ndstool/archive/refs/tags/v1.3.1-blocks.tar.gz",

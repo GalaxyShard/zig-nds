@@ -558,6 +558,8 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .link_libc = true,
         .optimize = options.optimize,
     });
+    // TODO: remove this; only exists for LLVM 18 compatibility
+    libplum.root_module.addCMacro("alignas", "_Alignas");
 
     if (options.target.result.os.tag == .windows) {
         // statically make sure aligned_alloc has no reason to be executed by libplum, as it does not exist on windows

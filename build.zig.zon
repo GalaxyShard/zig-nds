@@ -45,9 +45,8 @@
             .hash = "12200d9a282e4ca55be9c41a7f8e4e61386225c3b4ecca42c4337b40c30082b74c96",
         },
         .dswifi = .{
-            .path = "../dswifi-fork",
-            //.url = "https://github.com/blocksds/dswifi/archive/refs/tags/v1.3.1-blocks.tar.gz",
-            //.hash = "12207dcf6c58d49e5cdb9475859fb900795d22094b0a5cda5e004d57c5659e49ecc5",
+            .url = "https://github.com/blocksds/dswifi/archive/90d89d6652128ac3f6351a74a2f7aa764a509778.tar.gz",
+            .hash = "12200984b8d30432fbc002d452db400680ee5a8967a0813a517871dc4d988b68d4e0",
         },
         .maxmod = .{
             .path = "../maxmod-fork",

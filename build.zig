@@ -534,8 +534,12 @@ fn build_crts(b: *std.Build, options: CrtOptions) *std.Build.Step.WriteFile {
     });
     _ = crt_directory.addCopyFile(arm9_crt0.getEmittedBin(), "ds_arm9_crt0.o");
 
+    b.installDirectory(.{
+        .install_dir = .{ .custom = "crt" },
+        .install_subdir = "",
+        .source_dir = crt_directory.getDirectory(),
+    });
 
-//     b.default_step.dependOn(&crt_directory.step);
     return crt_directory;
 }
 

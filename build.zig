@@ -1,8 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const source_files = @import("util/source-files.zig");
-
 const libnds_flags = .{
     "-Wshadow",
     "-DPATH_MAX=1024", // HACK: this should not be needed, limits.h is somehow not included properly by Zig/LLVM
@@ -305,6 +303,83 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
     return default_arm7;
 }
 
+const FoundSourceFiles = struct {
+    inner: []const []const u8,
+
+    pub fn deinit(self: FoundSourceFiles, alloc: std.mem.Allocator) void {
+        for (self.inner) |file| {
+            alloc.free(file);
+        }
+        alloc.free(self.inner);
+    }
+};
+const FindSourceFilesOptions = struct {
+    builder: *std.Build,
+    sub_path: []const u8,
+    extension: []const u8,
+};
+fn find_source_files(options: FindSourceFilesOptions) FoundSourceFiles {
+    return find_source_files_inner(options) catch |e| std.debug.panic("error: {}", .{e});
+}
+fn find_source_files_inner(options: FindSourceFilesOptions) !FoundSourceFiles {
+    const alloc = options.builder.allocator;
+    var dir = try options.builder.build_root.handle.openDir(options.sub_path, .{
+        .iterate = true,
+    });
+    defer dir.close();
+
+    var walker = try dir.walk(alloc);
+    defer walker.deinit();
+
+    var sources = std.ArrayList([]const u8).init(alloc);
+    defer sources.deinit();
+
+
+    while (try walker.next()) |entry| {
+        if (entry.kind == .file) {
+            if (std.mem.endsWith(u8, entry.basename, options.extension)) {
+                try sources.append(try alloc.dupe(u8, entry.path));
+            }
+        }
+    }
+
+    return .{ .inner = try sources.toOwnedSlice() };
+}
+const AddSourceFilesOptions = struct {
+    builder: *std.Build,
+    sub_paths: []const []const u8,
+    compile: *std.Build.Step.Compile,
+    languages: []const struct {
+        type: std.Build.Module.ForeignSourceLanguage,
+        flags: []const []const u8,
+    },
+};
+fn add_source_files(options: AddSourceFilesOptions) void {
+    for (options.sub_paths) |sub_path| {
+        for (options.languages) |lang| {
+            const ext = switch (lang.type) {
+                .c => ".c",
+                .assembly_with_cpp, .assembly => ".s",
+                .cpp => ".cpp",
+                else => {
+                    @panic("language not c/cpp/assembly/assembly_with_cpp");
+                }
+            };
+            const sources = find_source_files(.{
+                .builder = options.builder,
+                .sub_path = sub_path,
+                .extension = ext,
+            });
+            defer sources.deinit(options.builder.allocator);
+
+            options.compile.addCSourceFiles(.{
+                .root = options.builder.path(sub_path),
+                .files = sources.inner,
+                .flags = lang.flags,
+            });
+        }
+    }
+}
 
 
 fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
@@ -325,49 +400,59 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
     libnds.arm9.root_module.root_source_file = b.path("src/arm9.zig");
     libnds.arm7.root_module.root_source_file = b.path("src/arm7.zig");
 
-    libnds.arm9.addIncludePath(fatfs_dep.path("source"));
-    libnds.arm9.addCSourceFiles(.{
-        .root = fatfs_dep.path("source"),
-        .files = &source_files.fatfs_c,
-        .language = .c,
+    add_source_files(.{
+        .compile = libnds.arm9,
+        .builder = libnds_dep.builder,
+        .sub_paths = &.{ "source/arm9", "source/common" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+            },
+            .{
+                .type = .assembly_with_cpp,
+                .flags = &(default_asm_flags ++ libnds_flags ++ extra_libnds_flags),
+            },
+        },
+    });
+    add_source_files(.{
+        .compile = libnds.arm9,
+        .builder = fatfs_dep.builder,
+        .sub_paths = &.{ "source" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+            },
+        },
     });
 
+
+    add_source_files(.{
+        .compile = libnds.arm7,
+        .builder = libnds_dep.builder,
+        .sub_paths = &.{ "source/arm7", "source/common" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
+            },
+            .{
+                .type = .assembly_with_cpp,
+                .flags = &(default_asm_flags ++ libnds_flags ++ extra_libnds_flags),
+            },
+        },
+    });
+
+    libnds.arm9.addIncludePath(fatfs_dep.path("source"));
     libnds.arm9.addIncludePath(libnds_dep.path("include"));
     libnds.arm9.addIncludePath(libnds_dep.path("source"));
     libnds.arm9.addIncludePath(libnds_dep.path("source/common/ndsabi"));
     libnds.arm9.addIncludePath(libnds_dep.path("source/arm9/libc/fatfs"));
 
-    libnds.arm9.addCSourceFiles(.{
-        .root = libnds_dep.path("source"),
-        .files = &(source_files.libnds_arm9_c ++ source_files.libnds_common_c),
-        .flags = &(default_c_flags ++ libnds_flags ++ extra_libnds_flags),
-        .language = .c,
-    });
-    libnds.arm9.addCSourceFiles(.{
-        .root = libnds_dep.path("source"),
-        .files = &(source_files.libnds_arm9_asm ++ source_files.libnds_common_asm),
-        .flags = &(default_asm_flags ++ libnds_flags ++ extra_libnds_flags),
-        .language = .assembly_with_cpp,
-    });
-
-
-
     libnds.arm7.addIncludePath(libnds_dep.path("include"));
     libnds.arm7.addIncludePath(libnds_dep.path("source"));
     libnds.arm7.addIncludePath(libnds_dep.path("source/common/ndsabi"));
-
-    libnds.arm7.addCSourceFiles(.{
-        .root = libnds_dep.path("source"),
-        .files = &(source_files.libnds_arm7_c ++ source_files.libnds_common_c),
-        .flags = &(default_c_flags ++ libnds_flags),
-        .language = .c,
-    });
-    libnds.arm7.addCSourceFiles(.{
-        .root = libnds_dep.path("source"),
-        .files = &(source_files.libnds_arm7_asm ++ source_files.libnds_common_asm),
-        .flags = &(default_asm_flags ++ libnds_flags),
-        .language = .assembly_with_cpp,
-    });
 
     return libnds;
 }
@@ -390,30 +475,35 @@ fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
     }
 
 
-    dswifi.arm9.addCSourceFiles(.{
-        .root = dswifi_dep.path("source"),
-        .files = &source_files.dswifi_arm9_c,
-        .flags = &default_c_flags,
-        .language = .c,
+    add_source_files(.{
+        .compile = dswifi.arm9,
+        .builder = dswifi_dep.builder,
+        .sub_paths = &.{ "source/arm9", "source/common" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &default_c_flags,
+            },
+            .{
+                .type = .assembly_with_cpp,
+                .flags = &default_asm_flags,
+            },
+        },
     });
-    dswifi.arm9.addCSourceFiles(.{
-        .root = dswifi_dep.path("source"),
-        .files = &source_files.dswifi_common_asm,
-        .flags = &default_asm_flags,
-        .language = .assembly_with_cpp,
-    });
-
-    dswifi.arm7.addCSourceFiles(.{
-        .root = dswifi_dep.path("source"),
-        .files = &source_files.dswifi_arm7_c,
-        .flags = &default_c_flags,
-        .language = .c,
-    });
-    dswifi.arm7.addCSourceFiles(.{
-        .root = dswifi_dep.path("source"),
-        .files = &source_files.dswifi_common_asm,
-        .flags = &default_asm_flags,
-        .language = .assembly_with_cpp,
+    add_source_files(.{
+        .compile = dswifi.arm7,
+        .builder = dswifi_dep.builder,
+        .sub_paths = &.{ "source/arm7", "source/common" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &default_c_flags,
+            },
+            .{
+                .type = .assembly_with_cpp,
+                .flags = &default_asm_flags,
+            },
+        },
     });
 
     dswifi.arm9.addIncludePath(libnds_dep.path("include"));
@@ -444,19 +534,29 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
     maxmod.arm9.root_module.addCMacro("SYS_NDS9", "");
     maxmod.arm7.root_module.addCMacro("SYS_NDS7", "");
 
+    add_source_files(.{
+        .compile = maxmod.arm9,
+        .builder = maxmod_dep.builder,
+        .sub_paths = &.{ "source/arm9", "source/common" },
+        .languages = &.{
+            .{
+                .type = .assembly_with_cpp,
+                .flags = &default_asm_flags,
+            },
+        },
+    });
+    add_source_files(.{
+        .compile = maxmod.arm7,
+        .builder = maxmod_dep.builder,
+        .sub_paths = &.{ "source/arm7", "source/common" },
+        .languages = &.{
+            .{
+                .type = .assembly_with_cpp,
+                .flags = &default_asm_flags,
+            },
+        },
+    });
 
-    maxmod.arm9.addCSourceFiles(.{
-        .root = maxmod_dep.path(""),
-        .files = &(source_files.maxmod_arm9_asm ++ source_files.maxmod_common_asm),
-        .flags = &default_asm_flags,
-        .language = .assembly_with_cpp,
-    });
-    maxmod.arm7.addCSourceFiles(.{
-        .root = maxmod_dep.path(""),
-        .files = &(source_files.maxmod_arm7_asm ++ source_files.maxmod_common_asm),
-        .flags = &default_asm_flags,
-        .language = .assembly_with_cpp,
-    });
     maxmod.arm9.addIncludePath(maxmod_dep.path("asm_include"));
     maxmod.arm7.addIncludePath(maxmod_dep.path("asm_include"));
 
@@ -580,12 +680,18 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     });
     exe.addObjectFile(libplum.getEmittedBin());
 
-    exe.addCSourceFiles(.{
-        .root = grit_c.path(""),
-        .files = &source_files.grit_cpp,
-        .flags = &default_cpp_flags,
-        .language = .cpp,
+    add_source_files(.{
+        .compile = exe,
+        .builder = grit_c.builder,
+        .sub_paths = &.{ "." },
+        .languages = &.{
+            .{
+                .type = .cpp,
+                .flags = &default_cpp_flags,
+            },
+        },
     });
+
     const include = .{"cldib", "extlib", "libgrit", "libplum", "srcgrit"};
     inline for (include) |path| {
         exe.addIncludePath(grit_c.path(path));
@@ -611,19 +717,21 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.root_module.addCMacro("WINICONV_CONST", ""); // for windows iconv
 
 
-    exe.addCSourceFiles(.{
-        .root = ndstool_c.path("source"),
-        .files = &source_files.ndstool_c,
-        .flags = &default_c_flags,
-        .language = .c,
+    add_source_files(.{
+        .compile = exe,
+        .builder = ndstool_c.builder,
+        .sub_paths = &.{ "source" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &default_c_flags,
+            },
+            .{
+                .type = .cpp,
+                .flags = &default_cpp_flags,
+            },
+        },
     });
-    exe.addCSourceFiles(.{
-        .root = ndstool_c.path("source"),
-        .files = &source_files.ndstool_cpp,
-        .flags = &default_cpp_flags,
-        .language = .cpp,
-    });
-
 
 
     // iconv doesn't exist on Windows, provide an alternative implementation
@@ -732,14 +840,19 @@ fn build_mkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .optimize = options.optimize,
         .link_libc = true,
     });
-    exe.addCSourceFiles(.{
-        .root = blocksds_tree.path("tools/mkfatimg/source"),
-        .files = &.{
-            "diskio.c", "ff.c", "ffsystem.c", "ffunicode.c", "main.c",
+
+    add_source_files(.{
+        .compile = exe,
+        .builder = blocksds_tree.builder,
+        .sub_paths = &.{ "tools/mkfatimg/source" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &default_c_flags,
+            },
         },
-        .flags = &default_c_flags,
-        .language = .c,
     });
+
     exe.addIncludePath(blocksds_tree.path("tools/mkfatimg/source"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
@@ -756,12 +869,19 @@ fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .link_libc = true,
     });
     exe.root_module.addCMacro("PACKAGE_VERSION", "\"1.10.1\"");
-    exe.addCSourceFiles(.{
-        .root = mmutil_c.path("source"),
-        .files = &source_files.mmutil_c,
-        .flags = &default_c_flags,
-        .language = .c,
+
+    add_source_files(.{
+        .compile = exe,
+        .builder = mmutil_c.builder,
+        .sub_paths = &.{ "source" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &default_c_flags,
+            },
+        },
     });
+
     exe.addIncludePath(mmutil_c.path("source"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;
@@ -777,12 +897,18 @@ fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
         .optimize = options.optimize,
         .link_libc = true,
     });
-    exe.addCSourceFiles(.{
-        .root = squeezer_c.path("src"),
-        .files = &source_files.squeezer_c,
-        .flags = &default_c_flags,
-        .language = .c,
+    add_source_files(.{
+        .compile = exe,
+        .builder = squeezer_c.builder,
+        .sub_paths = &.{ "src" },
+        .languages = &.{
+            .{
+                .type = .c,
+                .flags = &default_c_flags,
+            },
+        },
     });
+
     exe.addIncludePath(squeezer_c.path("src"));
     options.build_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
     return exe;

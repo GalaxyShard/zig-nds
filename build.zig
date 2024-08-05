@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const find_build_sources = @import("util/find-build-sources.zig");
+
 const libnds_flags = .{
     "-Wshadow",
     "-DPATH_MAX=1024", // HACK: this should not be needed, limits.h is somehow not included properly by Zig/LLVM
@@ -167,6 +169,7 @@ pub fn build(b: *std.Build) !void {
     }
 
 
+
     _ = build_default_arm7(b, .{
         .nds7_target = nds7_target_thumb,
         .optimize = optimize,
@@ -300,51 +303,11 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
 
     b.installArtifact(default_arm7);
 
+
+
     return default_arm7;
 }
 
-const FoundSourceFiles = struct {
-    inner: []const []const u8,
-
-    pub fn deinit(self: FoundSourceFiles, alloc: std.mem.Allocator) void {
-        for (self.inner) |file| {
-            alloc.free(file);
-        }
-        alloc.free(self.inner);
-    }
-};
-const FindSourceFilesOptions = struct {
-    builder: *std.Build,
-    sub_path: []const u8,
-    extension: []const u8,
-};
-fn find_source_files(options: FindSourceFilesOptions) FoundSourceFiles {
-    return find_source_files_inner(options) catch |e| std.debug.panic("error: {}", .{e});
-}
-fn find_source_files_inner(options: FindSourceFilesOptions) !FoundSourceFiles {
-    const alloc = options.builder.allocator;
-    var dir = try options.builder.build_root.handle.openDir(options.sub_path, .{
-        .iterate = true,
-    });
-    defer dir.close();
-
-    var walker = try dir.walk(alloc);
-    defer walker.deinit();
-
-    var sources = std.ArrayList([]const u8).init(alloc);
-    defer sources.deinit();
-
-
-    while (try walker.next()) |entry| {
-        if (entry.kind == .file) {
-            if (std.mem.endsWith(u8, entry.basename, options.extension)) {
-                try sources.append(try alloc.dupe(u8, entry.path));
-            }
-        }
-    }
-
-    return .{ .inner = try sources.toOwnedSlice() };
-}
 const AddSourceFilesOptions = struct {
     builder: *std.Build,
     sub_paths: []const []const u8,
@@ -365,17 +328,18 @@ fn add_source_files(options: AddSourceFilesOptions) void {
                     @panic("language not c/cpp/assembly/assembly_with_cpp");
                 }
             };
-            const sources = find_source_files(.{
+            const sources = find_build_sources.find(.{
                 .builder = options.builder,
                 .sub_path = sub_path,
                 .extension = ext,
             });
-            defer sources.deinit(options.builder.allocator);
+            defer sources.deinit(options.builder);
 
             options.compile.addCSourceFiles(.{
                 .root = options.builder.path(sub_path),
                 .files = sources.inner,
                 .flags = lang.flags,
+                .language = lang.type,
             });
         }
     }
@@ -411,7 +375,7 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
             },
             .{
                 .type = .assembly_with_cpp,
-                .flags = &(default_asm_flags ++ libnds_flags ++ extra_libnds_flags),
+                .flags = &(default_asm_flags),
             },
         },
     });
@@ -439,7 +403,7 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
             },
             .{
                 .type = .assembly_with_cpp,
-                .flags = &(default_asm_flags ++ libnds_flags ++ extra_libnds_flags),
+                .flags = &(default_asm_flags),
             },
         },
     });

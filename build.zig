@@ -61,7 +61,6 @@ pub fn build(b: *std.Build) !void {
             .{}
     );
 
-
     const tools_optimize = .ReleaseSafe;
     const tool_options = .{
         .target = tools_target,
@@ -141,6 +140,7 @@ pub fn build(b: *std.Build) !void {
 
 
     const libnds_dep = b.dependency("libnds", .{});
+
     const grit_images = .{
         .{ .dir = "source/arm9/gfx", .name = "keyboardGfx", },
         .{ .dir = "source/arm9/gfx", .name = "default_font", },
@@ -317,23 +317,27 @@ const AddSourceFilesOptions = struct {
         flags: []const []const u8,
     },
 };
+fn extension_is(comptime ext: []const u8) fn(path: []const u8) bool {
+    return struct {
+        fn inner(path: []const u8) bool {
+            return std.mem.endsWith(u8, path, "." ++ ext);
+        }
+    }.inner;
+}
 fn add_source_files(options: AddSourceFilesOptions) void {
     for (options.sub_paths) |sub_path| {
         for (options.languages) |lang| {
-            const ext = switch (lang.type) {
-                .c => ".c",
-                .assembly_with_cpp, .assembly => ".s",
-                .cpp => ".cpp",
+            const find = find_build_sources.find;
+
+            const sources = switch (lang.type) {
+                .c => find(options.builder, sub_path, extension_is("c")),
+                .assembly_with_cpp, .assembly => find(options.builder, sub_path, extension_is("s")),
+                .cpp => find(options.builder, sub_path, extension_is("cpp")),
                 else => {
                     @panic("language not c/cpp/assembly/assembly_with_cpp");
                 }
             };
-            const sources = find_build_sources.find(.{
-                .builder = options.builder,
-                .sub_path = sub_path,
-                .extension = ext,
-            });
-            defer sources.deinit(options.builder);
+            defer sources.deinit();
 
             options.compile.addCSourceFiles(.{
                 .root = options.builder.path(sub_path),

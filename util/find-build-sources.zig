@@ -1,26 +1,23 @@
 const std = @import("std");
 
 pub const FoundSourceFiles = struct {
+    builder: *std.Build,
     inner: []const []const u8,
 
-    pub fn deinit(self: FoundSourceFiles, builder: *std.Build) void {
+    pub fn deinit(self: FoundSourceFiles) void {
         for (self.inner) |file| {
-            builder.allocator.free(file);
+            self.builder.allocator.free(file);
         }
-        builder.allocator.free(self.inner);
+        self.builder.allocator.free(self.inner);
     }
 };
-pub const FindSourceFilesOptions = struct {
-    builder: *std.Build,
-    sub_path: []const u8,
-    extension: []const u8,
-};
-pub fn find(options: FindSourceFilesOptions) FoundSourceFiles {
-    return find_source_files_inner(options) catch |e| std.debug.panic("error: {}", .{e});
+pub fn find(b: *std.Build, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) FoundSourceFiles {
+    return find_inner(b, sub_path, predicate)
+        catch |e| std.debug.panic("error: {}", .{e});
 }
-fn find_source_files_inner(options: FindSourceFilesOptions) !FoundSourceFiles {
-    const alloc = options.builder.allocator;
-    var dir = try options.builder.build_root.handle.openDir(options.sub_path, .{
+fn find_inner(builder: *std.Build, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) !FoundSourceFiles {
+    const alloc = builder.allocator;
+    var dir = try builder.build_root.handle.openDir(sub_path, .{
         .iterate = true,
     });
     defer dir.close();
@@ -34,11 +31,14 @@ fn find_source_files_inner(options: FindSourceFilesOptions) !FoundSourceFiles {
 
     while (try walker.next()) |entry| {
         if (entry.kind == .file) {
-            if (std.mem.endsWith(u8, entry.basename, options.extension)) {
+            if (predicate(entry.path)) {
                 try sources.append(try alloc.dupe(u8, entry.path));
             }
         }
     }
 
-    return .{ .inner = try sources.toOwnedSlice() };
+    return .{
+        .builder = builder,
+        .inner = try sources.toOwnedSlice(),
+    };
 }

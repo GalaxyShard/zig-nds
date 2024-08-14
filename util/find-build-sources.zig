@@ -3,6 +3,7 @@ const std = @import("std");
 pub const FoundSourceFiles = struct {
     builder: *std.Build,
     inner: []const []const u8,
+    directory: std.Build.LazyPath,
 
     pub fn deinit(self: FoundSourceFiles) void {
         for (self.inner) |file| {
@@ -11,13 +12,12 @@ pub const FoundSourceFiles = struct {
         self.builder.allocator.free(self.inner);
     }
 };
-pub fn find(b: *std.Build, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) FoundSourceFiles {
-    return find_inner(b, sub_path, predicate)
-        catch |e| std.debug.panic("error: {}", .{e});
+pub fn find_dep(dep: *std.Build.Dependency, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) !FoundSourceFiles {
+    return find(dep.builder, sub_path, predicate);
 }
-fn find_inner(builder: *std.Build, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) !FoundSourceFiles {
-    const alloc = builder.allocator;
-    var dir = try builder.build_root.handle.openDir(sub_path, .{
+pub fn find(b: *std.Build, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) !FoundSourceFiles {
+    const alloc = b.allocator;
+    var dir = try b.build_root.handle.openDir(sub_path, .{
         .iterate = true,
     });
     defer dir.close();
@@ -38,7 +38,8 @@ fn find_inner(builder: *std.Build, sub_path: []const u8, comptime predicate: fn(
     }
 
     return .{
-        .builder = builder,
+        .builder = b,
         .inner = try sources.toOwnedSlice(),
+        .directory = b.path(sub_path),
     };
 }

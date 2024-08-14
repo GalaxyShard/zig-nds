@@ -345,11 +345,11 @@ fn add_source_files(options: AddSourceFilesOptions) void {
                 else => {
                     @panic("language not c/cpp/assembly/assembly_with_cpp");
                 }
-            };
+            } catch @panic("failed to enumerate source files");
             defer sources.deinit();
 
             options.compile.addCSourceFiles(.{
-                .root = options.builder.path(sub_path),
+                .root = sources.directory,
                 .files = sources.inner,
                 .flags = lang.flags,
                 .language = lang.type,

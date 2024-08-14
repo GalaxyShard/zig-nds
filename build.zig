@@ -4,12 +4,14 @@ const builtin = @import("builtin");
 const find_build_sources = @import("util/find-build-sources.zig");
 
 const libnds_flags = .{
-    "-Wshadow",
+//     "-Wshadow",
     "-DPATH_MAX=1024", // HACK: this should not be needed, limits.h is somehow not included properly by Zig/LLVM
+    "-Dpid_t=__pid_t", // TODO: figure out why this is necessary
+//     "-Werror",
 };
 const default_warn_flags = .{
     // TODO: add -Werror, otherwise these warnings are ignored and not displayed if the compilation was successful
-    "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
+//     "-Wall", "-Wextra", "-Wpedantic", "-Wstrict-prototypes",
 //     "-Werror",
 };
 const default_c_flags = default_warn_flags ++ .{ "-std=gnu23" };

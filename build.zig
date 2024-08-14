@@ -72,21 +72,21 @@ pub fn build(b: *std.Build) !void {
         .test_step = test_step,
     };
     // grit is needed to compile libnds, compile it natively
-    const host_grit = build_grit(b, .{
+    const host_grit = buildGrit(b, .{
         .target = b.resolveTargetQuery(.{}),
         .optimize = tools_optimize,
         .build_step = b.default_step,
         .test_step = test_step,
     });
-    _ = build_grit(b, tool_options);
-    _ = build_ndstool(b, tool_options);
-    _ = build_bin2c(b, tool_options);
-    _ = build_dldipatch(b, tool_options);
-    _ = build_dlditool(b, tool_options);
-    _ = build_mkfatimg(b, tool_options);
-    _ = build_mmutil(b, tool_options);
-    _ = build_squeezerw(b, tool_options);
-    _ = build_teaktool(b, tool_options);
+    _ = buildGrit(b, tool_options);
+    _ = buildNdstool(b, tool_options);
+    _ = buildBin2c(b, tool_options);
+    _ = buildDldipatch(b, tool_options);
+    _ = buildDlditool(b, tool_options);
+    _ = buildMkfatimg(b, tool_options);
+    _ = buildMmutil(b, tool_options);
+    _ = buildSqueezerw(b, tool_options);
+    _ = buildTeaktool(b, tool_options);
 
     const libc_file_builder = b.addExecutable(.{
         .name = "libc_file_builder",
@@ -133,7 +133,7 @@ pub fn build(b: *std.Build) !void {
         .nds7_target = nds7_target_thumb,
         .optimize = optimize,
     };
-    const crt_directory = build_crts(b, crt_options);
+    const crt_directory = buildCrts(b, crt_options);
 
 
     const make_libc_file = b.addRunArtifact(libc_file_builder);
@@ -151,8 +151,8 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
         .make_libc_file = make_libc_file,
     };
-    const libnds = build_libnds(b, lib_options);
-    const dswifi = build_dswifi(b, lib_options);
+    const libnds = buildLibnds(b, lib_options);
+    const dswifi = buildDswifi(b, lib_options);
 //     const maxmod = build_maxmod(b, lib_options);
 
 
@@ -188,7 +188,7 @@ pub fn build(b: *std.Build) !void {
 
 
 
-    _ = build_default_arm7(b, .{
+    _ = buildDefaultArm7(b, .{
         .nds7_target = nds7_target_thumb,
         .optimize = optimize,
         .libnds7 = libnds.arm7,
@@ -199,6 +199,9 @@ pub fn build(b: *std.Build) !void {
     });
 
     b.default_step.dependOn(tools_step);
+}
+fn isPng(path: []const u8) bool {
+    return std.mem.endsWith(u8, path, ".png");
 }
 
 
@@ -215,7 +218,7 @@ const CreateOptions = struct {
     optimize: std.builtin.OptimizeMode,
     make_libc_file: *std.Build.Step.Run,
 };
-fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateOptions) LibraryOutput {
+fn createArm7Arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateOptions) LibraryOutput {
     const arm9 = b.addStaticLibrary(.{
         .name = name ++ "9",
         .target = options.nds9_target,
@@ -271,7 +274,7 @@ fn create_arm7_arm9(b: *std.Build, comptime name: [:0]const u8, options: CreateO
 
 
 
-fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Step.Compile {
+fn buildDefaultArm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Step.Compile {
     const libnds_dep = b.dependency("libnds", .{});
     const dswifi_dep = b.dependency("dswifi", .{});
     const maxmod_dep = b.dependency("maxmod", .{});
@@ -341,22 +344,22 @@ const AddSourceFilesOptions = struct {
         flags: []const []const u8,
     },
 };
-fn extension_is(comptime ext: []const u8) fn(path: []const u8) bool {
+fn extensionIs(comptime ext: []const u8) fn(path: []const u8) bool {
     return struct {
         fn inner(path: []const u8) bool {
             return std.mem.endsWith(u8, path, "." ++ ext);
         }
     }.inner;
 }
-fn add_source_files(options: AddSourceFilesOptions) void {
+fn addSourceFiles(options: AddSourceFilesOptions) void {
     for (options.sub_paths) |sub_path| {
         for (options.languages) |lang| {
             const find = find_build_sources.find;
 
             const sources = switch (lang.type) {
-                .c => find(options.builder, sub_path, extension_is("c")),
-                .assembly_with_cpp, .assembly => find(options.builder, sub_path, extension_is("s")),
-                .cpp => find(options.builder, sub_path, extension_is("cpp")),
+                .c => find(options.builder, sub_path, extensionIs("c")),
+                .assembly_with_cpp, .assembly => find(options.builder, sub_path, extensionIs("s")),
+                .cpp => find(options.builder, sub_path, extensionIs("cpp")),
                 else => {
                     @panic("language not c/cpp/assembly/assembly_with_cpp");
                 }
@@ -374,7 +377,7 @@ fn add_source_files(options: AddSourceFilesOptions) void {
 }
 
 
-fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
+fn buildLibnds(b: *std.Build, options: LibOptions) LibraryOutput {
     const fatfs_dep = b.dependency("wf-fatfs", .{});
     const libnds_dep = b.dependency("libnds", .{});
 
@@ -383,7 +386,7 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
         else .{ "" }
     );
 
-    const libnds = create_arm7_arm9(b, "nds", .{
+    const libnds = createArm7Arm9(b, "nds", .{
         .nds7_target = options.nds7_target,
         .nds9_target = options.nds9_target,
         .optimize = options.optimize,
@@ -392,7 +395,7 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
     libnds.arm9.root_module.root_source_file = b.path("src/arm9.zig");
     libnds.arm7.root_module.root_source_file = b.path("src/arm7.zig");
 
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = libnds.arm9,
         .builder = libnds_dep.builder,
         .sub_paths = &.{ "source/arm9", "source/common" },
@@ -407,7 +410,7 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
             },
         },
     });
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = libnds.arm9,
         .builder = fatfs_dep.builder,
         .sub_paths = &.{ "source" },
@@ -420,7 +423,7 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
     });
 
 
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = libnds.arm7,
         .builder = libnds_dep.builder,
         .sub_paths = &.{ "source/arm7", "source/common" },
@@ -451,11 +454,11 @@ fn build_libnds(b: *std.Build, options: LibOptions) LibraryOutput {
 
 
 
-fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
+fn buildDswifi(b: *std.Build, options: LibOptions) LibraryOutput {
     const dswifi_dep = b.dependency("dswifi", .{});
     const libnds_dep = b.dependency("libnds", .{});
 
-    const dswifi = create_arm7_arm9(b, "dswifi", .{
+    const dswifi = createArm7Arm9(b, "dswifi", .{
         .nds7_target = options.nds7_target,
         .nds9_target = options.nds9_target,
         .optimize = options.optimize,
@@ -467,7 +470,7 @@ fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
     }
 
 
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = dswifi.arm9,
         .builder = dswifi_dep.builder,
         .sub_paths = &.{ "source/arm9", "source/common" },
@@ -482,7 +485,7 @@ fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
             },
         },
     });
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = dswifi.arm7,
         .builder = dswifi_dep.builder,
         .sub_paths = &.{ "source/arm7", "source/common" },
@@ -511,10 +514,10 @@ fn build_dswifi(b: *std.Build, options: LibOptions) LibraryOutput {
 
 
 
-fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
+fn buildMaxmod(b: *std.Build, options: LibOptions) LibraryOutput {
     const maxmod_dep = b.dependency("maxmod", .{});
 
-    const maxmod = create_arm7_arm9(b, "maxmod", .{
+    const maxmod = createArm7Arm9(b, "maxmod", .{
         .nds7_target = options.nds7_target,
         .nds9_target = options.nds9_target,
         .optimize = options.optimize,
@@ -526,7 +529,7 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
     maxmod.arm9.root_module.addCMacro("SYS_NDS9", "");
     maxmod.arm7.root_module.addCMacro("SYS_NDS7", "");
 
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = maxmod.arm9,
         .builder = maxmod_dep.builder,
         .sub_paths = &.{ "source/arm9", "source/common" },
@@ -537,7 +540,7 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
             },
         },
     });
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = maxmod.arm7,
         .builder = maxmod_dep.builder,
         .sub_paths = &.{ "source/arm7", "source/common" },
@@ -557,7 +560,7 @@ fn build_maxmod(b: *std.Build, options: LibOptions) LibraryOutput {
 
 
 
-fn build_crts(b: *std.Build, options: CrtOptions) *std.Build.Step.WriteFile {
+fn buildCrts(b: *std.Build, options: CrtOptions) *std.Build.Step.WriteFile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
 
     const crt_directory = b.addWriteFiles();
@@ -637,7 +640,7 @@ fn build_crts(b: *std.Build, options: CrtOptions) *std.Build.Step.WriteFile {
 
 
 
-fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildGrit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const grit_c = b.dependency("grit", .{});
     const exe = b.addExecutable(.{
         .name = "grit",
@@ -672,7 +675,7 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     });
     exe.addObjectFile(libplum.getEmittedBin());
 
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = exe,
         .builder = grit_c.builder,
         .sub_paths = &.{ "." },
@@ -696,7 +699,7 @@ fn build_grit(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
 
 
 
-fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildNdstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const ndstool_c = b.dependency("ndstool", .{});
 
     const exe = b.addExecutable(.{
@@ -709,7 +712,7 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     exe.root_module.addCMacro("WINICONV_CONST", ""); // for windows iconv
 
 
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = exe,
         .builder = ndstool_c.builder,
         .sub_paths = &.{ "source" },
@@ -766,7 +769,7 @@ fn build_ndstool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
 
 
 
-fn build_bin2c(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildBin2c(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
 
     const exe = b.addExecutable(.{
@@ -786,7 +789,7 @@ fn build_bin2c(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
 
 
 
-fn build_dldipatch(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildDldipatch(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const dldipatch_c = b.dependency("dldipatch", .{});
     const exe = b.addExecutable(.{
         .name = "dldipatch",
@@ -805,7 +808,7 @@ fn build_dldipatch(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
 
 
 
-fn build_dlditool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildDlditool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
     const exe = b.addExecutable(.{
         .name = "dlditool",
@@ -824,7 +827,7 @@ fn build_dlditool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
 
 
 
-fn build_mkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildMkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
     const exe = b.addExecutable(.{
         .name = "mkfatimg",
@@ -833,7 +836,7 @@ fn build_mkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
         .link_libc = true,
     });
 
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = exe,
         .builder = blocksds_tree.builder,
         .sub_paths = &.{ "tools/mkfatimg/source" },
@@ -852,7 +855,7 @@ fn build_mkfatimg(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
 
 
 
-fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildMmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const mmutil_c = b.dependency("mmutil", .{});
     const exe = b.addExecutable(.{
         .name = "mmutil",
@@ -862,7 +865,7 @@ fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     });
     exe.root_module.addCMacro("PACKAGE_VERSION", "\"1.10.1\"");
 
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = exe,
         .builder = mmutil_c.builder,
         .sub_paths = &.{ "source" },
@@ -881,7 +884,7 @@ fn build_mmutil(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
 
 
 
-fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildSqueezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const squeezer_c = b.dependency("squeezer", .{});
     const exe = b.addExecutable(.{
         .name = "squeezerw",
@@ -889,7 +892,7 @@ fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
         .optimize = options.optimize,
         .link_libc = true,
     });
-    add_source_files(.{
+    addSourceFiles(.{
         .compile = exe,
         .builder = squeezer_c.builder,
         .sub_paths = &.{ "src" },
@@ -908,7 +911,7 @@ fn build_squeezerw(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile 
 
 
 
-fn build_teaktool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
+fn buildTeaktool(b: *std.Build, options: ToolOptions) *std.Build.Step.Compile {
     const blocksds_tree = b.dependency("blocksds-tree", .{});
     const exe = b.addExecutable(.{
         .name = "teaktool",

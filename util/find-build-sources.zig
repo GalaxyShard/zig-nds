@@ -12,7 +12,7 @@ pub const FoundSourceFiles = struct {
         self.builder.allocator.free(self.inner);
     }
 };
-pub fn find_dep(dep: *std.Build.Dependency, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) !FoundSourceFiles {
+pub fn findDep(dep: *std.Build.Dependency, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) !FoundSourceFiles {
     return find(dep.builder, sub_path, predicate);
 }
 pub fn find(b: *std.Build, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) !FoundSourceFiles {

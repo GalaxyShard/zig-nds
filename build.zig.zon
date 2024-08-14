@@ -53,6 +53,12 @@
             //.url = "https://github.com/blocksds/maxmod/archive/refs/tags/v1.3.1-blocks.tar.gz",
             //.hash = "122059b136ec39004b631f24be47bca693740545de369f8b11880228ce7c301a1bd3",
         },
+
+        .picolibc = .{
+            .path = "../picolibc-zig",
+            //.url = "https://github.com/galaxyshard/picolibc-zig/archive/zig-pkg.tar.gz",
+            //.hash = "12201efd18d680d39767f62a94db9c9ee97e37860bcc2499b209119a597d53ad2a4d",
+        }
     },
     .paths = .{
         "src",

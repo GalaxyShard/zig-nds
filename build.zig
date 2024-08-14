@@ -40,8 +40,9 @@ const DefaultArm7Options = struct {
     optimize: std.builtin.OptimizeMode,
     libnds7: *std.Build.Step.Compile,
     dswifi7: *std.Build.Step.Compile,
-    make_libc_file: *std.Build.Step.Run,
 //     maxmod7: *std.Build.Step.Compile,
+    make_libc_file: *std.Build.Step.Run,
+    compile_libc_arm7: *std.Build.Step.Compile,
 };
 
 pub fn build(b: *std.Build) !void {
@@ -118,8 +119,14 @@ pub fn build(b: *std.Build) !void {
 //         .cpu_model = .{ .explicit = &std.Target.arm.cpu.arm7tdmi },
 //         .abi = .eabi,
 //     });
-
-
+    const picolibc_arm7 = b.dependency("picolibc", .{
+        .target = nds7_target_thumb,
+        .optimize = optimize,
+    });
+//     const picolibc_arm9 = b.dependency("picolibc", .{
+//         .target = nds9_target_thumb,
+//         .optimize = optimize,
+//     });
 
     const crt_options = .{
         .nds9_target = nds9_target_thumb,
@@ -133,6 +140,8 @@ pub fn build(b: *std.Build) !void {
     // TODO: remove dependency on external toolchain
     make_libc_file.addArg("include_dir=/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/include");
     make_libc_file.addArg("sys_include_dir=/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/include");
+//     make_libc_file.addPrefixedDirectoryArg("include_dir=", picolibc_arm7.artifact("c").getEmittedIncludeTree());
+//     make_libc_file.addPrefixedDirectoryArg("sys_include_dir=", picolibc_arm7.artifact("c").getEmittedIncludeTree());
     make_libc_file.addPrefixedDirectoryArg("crt_dir=", crt_directory.getDirectory());
     b.default_step.dependOn(&make_libc_file.step);
 
@@ -186,6 +195,7 @@ pub fn build(b: *std.Build) !void {
         .dswifi7 = dswifi.arm7,
 //         .maxmod7 = maxmod.arm7,
         .make_libc_file = make_libc_file,
+        .compile_libc_arm7 = picolibc_arm7.artifact("c"),
     });
 
     b.default_step.dependOn(tools_step);
@@ -272,6 +282,7 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
         else .ReleaseSafe
     );
 
+//     const default_arm7 = b.addObject(.{
     const default_arm7 = b.addExecutable(.{
         .name = "default_arm7",
         .target = options.nds7_target,
@@ -288,6 +299,9 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
 
     default_arm7.setLibCFile(options.make_libc_file.captureStdOut());
     default_arm7.step.dependOn(&options.make_libc_file.step);
+    default_arm7.addLibraryPath(options.compile_libc_arm7.getEmittedBin().dirname());
+//     default_arm7.addObjectFile(options.compile_libc_arm7.getEmittedBin());
+    default_arm7.step.dependOn(&options.compile_libc_arm7.step);
 //     default_arm7.addLibraryPath(.{ .cwd_relative = "/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/lib/arm7tdmi" });
 //     default_arm7.addObjectFile(.{ .cwd_relative = "/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/lib/arm7tdmi/libc.a" });
 //     default_arm7.addObjectFile(.{ .cwd_relative = "/opt/wonderful/toolchain/gcc-arm-none-eabi/arm-none-eabi/lib/arm7tdmi/libm.a" });
@@ -311,6 +325,7 @@ fn build_default_arm7(b: *std.Build, options: DefaultArm7Options) *std.Build.Ste
 //     default_arm7.linkLibrary(options.maxmod7);
 
     b.installArtifact(default_arm7);
+//     b.default_step.dependOn(&b.addInstallBinFile(default_arm7.getEmittedBin(), "default_arm7.o").step);
 
 
 

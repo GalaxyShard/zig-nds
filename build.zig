@@ -68,7 +68,14 @@ pub fn build(b: *std.Build) !void {
         .build_step = tools_step,
         .test_step = test_step,
     };
-    const grit = build_grit(b, tool_options);
+    // grit is needed to compile libnds, compile it natively
+    const host_grit = build_grit(b, .{
+        .target = b.resolveTargetQuery(.{}),
+        .optimize = tools_optimize,
+        .build_step = b.default_step,
+        .test_step = test_step,
+    });
+    _ = build_grit(b, tool_options);
     _ = build_ndstool(b, tool_options);
     _ = build_bin2c(b, tool_options);
     _ = build_dldipatch(b, tool_options);
@@ -150,7 +157,7 @@ pub fn build(b: *std.Build) !void {
 
     inline for (grit_images) |image| {
         const image_path = libnds_dep.path(image.dir ++ "/" ++ image.name ++ ".png");
-        const convert = b.addRunArtifact(grit);
+        const convert = b.addRunArtifact(host_grit);
 
         convert.setCwd(wf.getDirectory());
 

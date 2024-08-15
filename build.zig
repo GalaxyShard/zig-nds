@@ -159,15 +159,14 @@ pub fn build(b: *std.Build) !void {
 
     const libnds_dep = b.dependency("libnds", .{});
 
-    const grit_images = .{
-        .{ .dir = "source/arm9/gfx", .name = "keyboardGfx", },
-        .{ .dir = "source/arm9/gfx", .name = "default_font", },
-    };
+
+    const libnds_pngs = try find_build_sources.findDep(libnds_dep, "graphics", isPng);
     const wf = b.addWriteFiles();
     libnds.arm9.addIncludePath(wf.getDirectory());
 
-    inline for (grit_images) |image| {
-        const image_path = libnds_dep.path(image.dir ++ "/" ++ image.name ++ ".png");
+    for (libnds_pngs.inner) |png| {
+        const image_path = libnds_pngs.path(png);
+        const output_path = std.mem.trimRight(u8, png, ".png");
         const convert = b.addRunArtifact(host_grit);
 
         convert.setCwd(wf.getDirectory());
@@ -176,10 +175,13 @@ pub fn build(b: *std.Build) !void {
         convert.addArg("-ftc"); // output file type C
         convert.addArg("-W1"); // -W1 for error messages, -W2 for error + warnings
         convert.addArg("-o");
-        convert.addArg(image.name);
+        convert.addArg(output_path);
+
+        const c_file = try std.mem.concat(b.allocator, u8, &.{ output_path, ".c" });
+        defer b.allocator.free(c_file);
 
         libnds.arm9.addCSourceFile(.{
-            .file = wf.getDirectory().path(b, image.name ++ ".c"),
+            .file = wf.getDirectory().path(b, c_file),
             .flags = &default_c_flags,
             .language = .c,
         });

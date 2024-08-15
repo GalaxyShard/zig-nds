@@ -11,6 +11,9 @@ pub const FoundSourceFiles = struct {
         }
         self.builder.allocator.free(self.inner);
     }
+    pub fn path(self: *const FoundSourceFiles, sub_path: []const u8) std.Build.LazyPath {
+        return self.directory.path(self.builder, sub_path);
+    }
 };
 pub fn findDep(dep: *std.Build.Dependency, sub_path: []const u8, comptime predicate: fn(path: []const u8) bool) !FoundSourceFiles {
     return find(dep.builder, sub_path, predicate);

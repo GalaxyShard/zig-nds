@@ -1,5 +1,7 @@
 # zig-nds
 
+## This project has moved to Codeberg: https://codeberg.org/GalaxyShard/zig-nds
+
 BlocksDS ported to the Zig Build System + libnds bindings
 
 This project is a work-in-progress and may not compile.
